@@ -2,7 +2,7 @@
 
 extern crate env_logger;
 extern crate gfx_hal as hal;
-extern crate gfx_backend_dx12 as back;
+extern crate gfx_backend_vulkan as back;
 extern crate log;
 extern crate nalgebra;
 extern crate num_cpus;
@@ -29,7 +29,6 @@ pub struct GfxExample<E: Example> {
     events_loop : winit::EventsLoop,
     window : winit::Window,
     example : Rc<RefCell<E>>,
-    instance : back::Instance,
     surface : <GfxBackend as Backend>::Surface,
     adapters : Vec<Adapter<GfxBackend>>,
     device : Rc<RefCell<GfxDevice<GfxBackend>>>,
@@ -45,7 +44,7 @@ impl<E: Example> Drop for GfxExample<E> {
 }
 
 impl<E: Example> GfxExample<E> {
-    pub fn new(example : Rc<RefCell<E>>) -> Self {
+    pub fn new(instance : &back::Instance, example : Rc<RefCell<E>>) -> Self {
         let events_loop = winit::EventsLoop::new();
         let window = winit::WindowBuilder::new()
             .with_dimensions(winit::dpi::LogicalSize::new(1024 as _, 768 as _))
@@ -53,7 +52,6 @@ impl<E: Example> GfxExample<E> {
             .build(&events_loop)
             .expect("Failed to create window.");
 
-        let instance = back::Instance::create("gfx-rs-examples", 1);
         let mut surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
 
@@ -62,10 +60,10 @@ impl<E: Example> GfxExample<E> {
         )));
 
         let swapchain = GfxSwapchain::new(Rc::clone(&device), &mut surface);
-        Self { window, events_loop, example, instance, surface, adapters, device, swapchain: Some(swapchain) }
+        Self { window, events_loop, example, surface, adapters, device, swapchain: Some(swapchain) }
     }
 
-    pub fn run(mut self) {
+    pub fn run(&mut self) {
         let mut running = true;
         while running {
             self.events_loop.poll_events(|event| {
@@ -185,9 +183,11 @@ mod tests {
 
     #[test]
     fn empty_example() {
+        // Instance needs to remain alive outside of example scope for proper cleanup.
+        let instance = back::Instance::create("gfx-rs-examples", 1);
         // Create an implementation of the example. For this test it will be empty to validate the processes.
         let example_impl = EmptyExample::new();
-        let example = GfxExample::<EmptyExample>::new(
+        let mut example = GfxExample::<EmptyExample>::new(&instance,
             Rc::new(RefCell::new(example_impl)));
         example.run();
     }
