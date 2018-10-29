@@ -15,7 +15,3 @@ nalgebra = "0.16.5"
 num_cpus = "1.8.0"
 threadpool = "1.7.1"
 winit = "0.17.2"
-
-[[bin]]
-name = "triangle"
-path = "src/triangle/main.rs"
