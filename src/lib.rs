@@ -1,4 +1,4 @@
-#![feature(extern_crate_item_prelude)]
+#![feature(extern_crate_item_prelude,range_contains)]
 extern crate env_logger;
 extern crate gfx_hal as hal;
 extern crate gfx_backend_vulkan as back;
@@ -18,10 +18,6 @@ use hal::{image, pool};
 // Core backend type for gfx based on the crate.
 type GfxBackend = back::Backend;
 
-// Prepare for hotswapping backends.
-//type GfxVulkanBackend = vk::Backend;
-//type GfxDx12Backend = dx12::Backend;
-
 pub trait Example {
     fn render(self);
     fn build_command_buffers(self);
@@ -31,11 +27,7 @@ pub trait Example {
     fn get_enabled_features(self);
 }
 
-pub fn hotswap_backend<B>() where B: Backend {
-
-}
-
-pub struct GfxExample<E: Example> {
+pub struct GfxCore<E: Example> {
     events_loop : winit::EventsLoop,
     window : winit::Window,
     example : Rc<RefCell<E>>,
@@ -43,19 +35,22 @@ pub struct GfxExample<E: Example> {
     surface : <GfxBackend as Backend>::Surface,
     adapters : Vec<Adapter<GfxBackend>>,
     device : Option<Rc<RefCell<GfxDevice<GfxBackend>>>>,
+    sync : Option<GfxSync<GfxBackend>>,
     swapchain : Option<GfxSwapchain<GfxBackend>>,
 }
 
-impl<E: Example> Drop for GfxExample<E> {
+impl<E: Example> Drop for GfxCore<E> {
     fn drop(&mut self) {
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
+        self.sync.take();
+        debug_assert!(self.sync.is_none());
         self.device.take();
         debug_assert!(self.device.is_none());
     }
 }
 
-impl<E: Example> GfxExample<E> {
+impl<E: Example> GfxCore<E> {
     pub fn new(example : Rc<RefCell<E>>) -> Self {
         let events_loop = winit::EventsLoop::new();
         let window = winit::WindowBuilder::new()
@@ -70,11 +65,17 @@ impl<E: Example> GfxExample<E> {
             adapters.remove(0),
             &surface
         ))));
+
+        // Initialize syncronization primitives.
+        let sync = GfxSync::new(
+            Rc::clone(&device.clone().unwrap()),
+            2).ok();
+
+        // Create initial swapchain for rendering.
         let swapchain = GfxSwapchain::new(
             Rc::clone(&device.clone().unwrap()),
-            &mut surface,
-            2);
-        Self { window, events_loop, example, instance, surface, adapters, device, swapchain: Some(swapchain) }
+            &mut surface, 2).ok();
+        Self { window, events_loop, example, instance, surface, adapters, device, sync, swapchain }
     }
 
     pub fn run(&mut self) {
@@ -105,6 +106,8 @@ pub struct GfxDevice<B: Backend> {
 
 impl<B: Backend> Drop for GfxDevice<B> {
     fn drop(&mut self) {
+        // Wait for gpu operations to complete before destroying resources.
+        &self.logical_device.wait_idle().unwrap();
         &self.logical_device.destroy_command_pool(self.command_pool.take().unwrap().into_raw());
         debug_assert!(self.command_pool.is_none());
     }
@@ -142,8 +145,12 @@ impl<B: Backend> GfxSwapchain<B> {
     // Any events that break the existing swapchain `should` call `recreate`.
     pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
                mut surface : &mut B::Surface,
-               image_count : u32) -> Self {
+               image_count : u32) -> Result<Self,&str> {
         let (caps, formats, _present_modes) = surface.compatibility(&device.borrow().physical_device);
+        if !caps.image_count.contains(&image_count) {
+            return Err("image_count parameter was not within valid boundaries.");
+        }
+
         let format = formats
             .map_or(format::Format::Rgba8Srgb, |formats| {
                 formats
@@ -160,13 +167,13 @@ impl<B: Backend> GfxSwapchain<B> {
             extent.height,
             format::Format::Rgba8Unorm,
             image_count)
-            .with_mode(PresentMode::Fifo);
+            .with_mode(PresentMode::Fifo); // Vulkan spec guarantee's this mode.
         println!("{:?}", swap_config);
         let (swapchain, backbuffer) = device.borrow().logical_device
             .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
-        Self { caps, swap_config, device,
-            swapchain: Some(swapchain), backbuffer: Some(backbuffer) }
+        Ok(Self { caps, swap_config, device,
+            swapchain: Some(swapchain), backbuffer: Some(backbuffer) })
     }
 
     pub fn recreate(self) {
@@ -181,11 +188,41 @@ impl<B: Backend> Drop for GfxSwapchain<B> {
     }
 }
 
+pub struct GfxSync<B :Backend> {
+    device : Rc<RefCell<GfxDevice<B>>>,
+    fence : Option<B::Fence>,
+    present_semaphores : Option<Vec<B::Semaphore>>
+}
+
+impl<B: Backend> GfxSync<B> {
+    pub fn new(device : Rc<RefCell<GfxDevice<B>>>, image_count : u32) -> Result<Self,()> {
+        let fence = device.borrow().logical_device.create_fence(true).expect("Failed to create fence.");
+        let mut present_semaphores = Vec::<B::Semaphore>::new();
+        let mut current_count  = 0;
+        while current_count < image_count {
+            present_semaphores.push(device.borrow().logical_device.create_semaphore().expect("Failed to create semaphore."));
+            current_count = current_count + 1;
+        }
+        Ok(Self { device, fence : Some(fence), present_semaphores: Some(present_semaphores) })
+    }
+}
+
+impl<B: Backend> Drop for GfxSync<B> {
+    fn drop(&mut self) {
+        &self.device.borrow().logical_device.destroy_fence(self.fence.take().unwrap());
+        debug_assert!(self.fence.is_none());
+        for present_semaphore in self.present_semaphores.take().unwrap() {
+            &self.device.borrow().logical_device.destroy_semaphore(present_semaphore);
+        }
+        debug_assert!(self.present_semaphores.is_none());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
-    use super::{Example, GfxExample};
+    use super::{Example, GfxCore};
 
     pub struct EmptyExample {}
     impl EmptyExample {
@@ -205,7 +242,7 @@ mod tests {
         println!();
         // Create an implementation of the example. For this test it will be empty to validate the processes.
         let example_impl = EmptyExample::new();
-        let mut example = GfxExample::<EmptyExample>::new(
+        let mut example = GfxCore::<EmptyExample>::new(
             Rc::new(RefCell::new(example_impl)));
         example.run();
     }
