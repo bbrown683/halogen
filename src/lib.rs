@@ -8,7 +8,6 @@ extern crate num_cpus;
 extern crate winit;
 
 use std::cell::RefCell;
-use std::mem::ManuallyDrop;
 use std::rc::Rc;
 use hal::{Adapter, Backbuffer, Backend, SurfaceCapabilities, CommandPool, Device, Features,
           Instance, Limits, MemoryProperties, PhysicalDevice, PresentMode, QueueGroup, Surface,
@@ -16,34 +15,12 @@ use hal::{Adapter, Backbuffer, Backend, SurfaceCapabilities, CommandPool, Device
 use hal::format::{self, ChannelType};
 use hal::{image, pool};
 
+// Core backend type for gfx based on the crate.
 type GfxBackend = back::Backend;
 
-// Selects the best physical device based on several the following parameters:
-// 1. Device must be discrete.
-// ..
-pub fn select_physical_device(adapters : Vec<Adapter<GfxBackend>>) -> Adapter<GfxBackend> {
-    unimplemented!()
-}
-
-// Selects the best color format available. If the favored format exists, it will automatically return that one.
-pub fn select_color_format(formats : Vec<format::Format>, favored : Option<format::Format>) -> format::Format {
-    unimplemented!()
-}
-
-// Selects the best color format available. If the favored format exists, it will automatically return that one.
-pub fn select_depth_stecil_format(formats : Vec<format::Format>, favored : Option<format::Format>) -> Option<format::Format> {
-    unimplemented!()
-}
-
-// Selects the present mode based on the input parameters.
-pub fn select_present_mode(present_modes : Vec<PresentMode>) -> PresentMode {
-    unimplemented!()
-}
-
-// Returns whether a given device feature is present.
-pub fn is_device_feature_present() -> bool {
-    unimplemented!()
-}
+// Prepare for hotswapping backends.
+//type GfxVulkanBackend = vk::Backend;
+//type GfxDx12Backend = dx12::Backend;
 
 pub trait Example {
     fn render(self);
@@ -52,6 +29,10 @@ pub trait Example {
     fn setup_framebuffer(self);
     fn setup_render_pass(self);
     fn get_enabled_features(self);
+}
+
+pub fn hotswap_backend<B>() where B: Backend {
+
 }
 
 pub struct GfxExample<E: Example> {
@@ -86,9 +67,13 @@ impl<E: Example> GfxExample<E> {
         let mut surface = instance.create_surface(&window);
         let mut adapters = instance.enumerate_adapters();
         let device = Some(Rc::new(RefCell::new(GfxDevice::new(
-            adapters.remove(0), &surface
+            adapters.remove(0),
+            &surface
         ))));
-        let swapchain = GfxSwapchain::new(Rc::clone(&device.clone().unwrap()), &mut surface, None);
+        let swapchain = GfxSwapchain::new(
+            Rc::clone(&device.clone().unwrap()),
+            &mut surface,
+            2);
         Self { window, events_loop, example, instance, surface, adapters, device, swapchain: Some(swapchain) }
     }
 
@@ -132,7 +117,7 @@ impl<B: Backend> GfxDevice<B> {
             .expect("Failed to create device and queue group.");
         let command_pool = logical_device
             .create_command_pool_typed(&queue_group, pool::CommandPoolCreateFlags::empty(), num_cpus::get())
-            .expect("Can't create command pool");
+            .expect("Failed to create command pool");
 
         let physical_device  = adapter.physical_device;
         let enabled_features = physical_device.features();
@@ -146,9 +131,7 @@ impl<B: Backend> GfxDevice<B> {
 // Represents the Swapchain parameters for presenting to the screen.
 pub struct GfxSwapchain<B: Backend> {
     caps : SurfaceCapabilities,
-    format : format::Format,
-    extent : image::Extent,
-    image_count : u32,
+    swap_config : SwapchainConfig,
     device : Rc<RefCell<GfxDevice<B>>>,
     swapchain : Option<B::Swapchain>,
     backbuffer : Option<Backbuffer<B>>
@@ -157,7 +140,9 @@ pub struct GfxSwapchain<B: Backend> {
 impl<B: Backend> GfxSwapchain<B> {
     // Creates a new swapchain with the given surface. This function will only need to be called once.
     // Any events that break the existing swapchain `should` call `recreate`.
-    pub fn new(device : Rc<RefCell<GfxDevice<B>>>, mut surface : &mut B::Surface, image_count : Option<u32>) -> Self {
+    pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
+               mut surface : &mut B::Surface,
+               image_count : u32) -> Self {
         let (caps, formats, _present_modes) = surface.compatibility(&device.borrow().physical_device);
         let format = formats
             .map_or(format::Format::Rgba8Srgb, |formats| {
@@ -167,20 +152,24 @@ impl<B: Backend> GfxSwapchain<B> {
                     .map(|format| *format)
                     .unwrap_or(formats[0])
             });
-        println!("Surface Capabilities {:?}", caps);
 
-        let swap_config = SwapchainConfig::from_caps(&caps, format);
-        println!("Swapchain Config {:?}", swap_config);
-        let extent = swap_config.extent.to_extent();
-        let image_count = swap_config.image_count;
+        println!("{:?}", caps);
+        let extent = caps.current_extent.unwrap().to_extent();
+        let swap_config = SwapchainConfig::new(
+            extent.width,
+            extent.height,
+            format::Format::Rgba8Unorm,
+            image_count)
+            .with_mode(PresentMode::Fifo);
+        println!("{:?}", swap_config);
         let (swapchain, backbuffer) = device.borrow().logical_device
-            .create_swapchain(&mut surface, swap_config, None)
+            .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
-        Self { caps, format, extent, image_count, device,
+        Self { caps, swap_config, device,
             swapchain: Some(swapchain), backbuffer: Some(backbuffer) }
     }
 
-    pub fn recreate(self, _previous : Option<B::Swapchain>) {
+    pub fn recreate(self) {
         unimplemented!()
     }
 }
@@ -213,6 +202,7 @@ mod tests {
 
     #[test]
     fn empty_example() {
+        println!();
         // Create an implementation of the example. For this test it will be empty to validate the processes.
         let example_impl = EmptyExample::new();
         let mut example = GfxExample::<EmptyExample>::new(
