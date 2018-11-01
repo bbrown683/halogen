@@ -1,5 +1,5 @@
 [package]
-name = "gfx-hal-examples"
+name = "halogen"
 version = "0.1.0"
 authors = ["Ben Brown <bbrown683@live.com>"]
 edition = "2018"
@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 env_logger = "0.5.13"
 gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
+gfx-backend-dx12 = { git = "https://github.com/gfx-rs/gfx" }
 gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx" }
 gltf = "0.11.2"
 image = "0.20.0"
@@ -14,5 +15,6 @@ log = "0.4.6"
 nalgebra = "0.16.5"
 num_cpus = "1.8.0"
 rusttype = "0.7.2"
+specs = "0.14.0"
 threadpool = "1.7.1"
 winit = "0.17.2"
