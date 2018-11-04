@@ -12,9 +12,10 @@ pub use self::sync::GfxSync;
 
 use hal::{Adapter, Backend, Instance};
 
-// Core backend type for gfx based on the crate.
+/// Core backend type for gfx based on the crate.
 pub type GfxBackendType = back::Backend;
 
+/// Manages the required components to initialize the gfx library.
 pub struct GfxBackend {
     pub instance : back::Instance,
     pub surface : <GfxBackendType as Backend>::Surface,

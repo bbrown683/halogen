@@ -3,6 +3,8 @@ use hal::pso::PipelineStage;
 use hal::{Adapter, Backend, CommandPool, Device, Features, Graphics, Limits, MemoryProperties,
           PhysicalDevice, QueueGroup, Surface };
 
+/// This module features the lowest level types needed by the other modules for creating resources,
+/// managing render state, etc.
 pub struct GfxDevice<B: Backend> {
     pub physical_device : B::PhysicalDevice,
     pub enabled_features : Features,
@@ -18,7 +20,6 @@ impl<B: Backend> Drop for GfxDevice<B> {
     fn drop(&mut self) {
         // Wait for gpu operations to complete before destroying resources.
         &self.logical_device.wait_idle().unwrap();
-
         &self.logical_device.destroy_render_pass(self.render_pass.take().unwrap());
         debug_assert!(self.render_pass.is_none());
         &self.logical_device.destroy_command_pool(self.command_pool.take().unwrap().into_raw());

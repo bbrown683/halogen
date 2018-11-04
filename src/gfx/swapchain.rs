@@ -5,7 +5,7 @@ use hal::{Backbuffer, Backend, Device, FrameSync, SurfaceCapabilities, PresentMo
 use hal::format;
 use crate::gfx::{GfxDevice, GfxSync};
 
-// Represents the Swapchain parameters for presenting to the screen.
+/// Controls the presentation to a surface.
 pub struct GfxSwapchain<B: Backend> {
     pub current_image : u32,
     pub caps : SurfaceCapabilities,
@@ -14,6 +14,13 @@ pub struct GfxSwapchain<B: Backend> {
     sync : Rc<RefCell<GfxSync<B>>>,
     swapchain : Option<B::Swapchain>,
     backbuffer : Option<Backbuffer<B>>,
+}
+
+impl<B: Backend> Drop for GfxSwapchain<B> {
+    fn drop(&mut self) {
+        &self.device.borrow().logical_device.destroy_swapchain(self.swapchain.take().unwrap());
+        debug_assert!(self.swapchain.is_none());
+    }
 }
 
 impl<B: Backend> GfxSwapchain<B> {
@@ -65,11 +72,4 @@ impl<B: Backend> GfxSwapchain<B> {
         &self.swapchain.as_mut().unwrap().present(self.device.borrow().queue_group.queues[0], self.current_image)
     }
     */
-}
-
-impl<B: Backend> Drop for GfxSwapchain<B> {
-    fn drop(&mut self) {
-        &self.device.borrow().logical_device.destroy_swapchain(self.swapchain.take().unwrap());
-        debug_assert!(self.swapchain.is_none());
-    }
 }

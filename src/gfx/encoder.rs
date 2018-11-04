@@ -5,7 +5,7 @@ use hal::{Backend};
 use hal::command::{ClearValue, ClearColor};
 use crate::gfx::{GfxDevice, GfxRenderable};
 
-// Encodes render state to a command buffer from a command pool.
+/// Records rendering state into a command buffer. The encoder can be reused for a `GfxRenderable`.
 pub struct GfxEncoder<B: Backend> {
     device : Rc<RefCell<GfxDevice<B>>>,
     renderable : Option<GfxRenderable<B>>,

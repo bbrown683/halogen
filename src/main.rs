@@ -3,7 +3,6 @@ extern crate clap;
 extern crate directories;
 extern crate gfx_hal as hal;
 extern crate gfx_backend_vulkan as back;
-extern crate gltf;
 extern crate image;
 extern crate imgui;
 extern crate log;
@@ -15,13 +14,17 @@ extern crate rusttype;
 extern crate specs;
 extern crate winit;
 
+use std::str::FromStr;
 use clap::{ Arg, App, crate_authors, crate_description, crate_name, crate_version };
 
-mod gfx;
-mod render;
+/// Internal module handling the gfx-hal library.
+pub mod gfx;
+/// Wrapper around gfx-hal featuring higher-level constructs.
+pub mod render;
 
 fn main() {
-    let _matches = App::new(crate_name!())
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+    let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
@@ -35,9 +38,12 @@ fn main() {
             .takes_value(true))
         .get_matches();
 
+    let width = u32::from_str(matches.value_of("width").unwrap_or("1024")).unwrap();
+    let height = u32::from_str(matches.value_of("height").unwrap_or("768")).unwrap();
+
     let mut events_loop = winit::EventsLoop::new();
     let window = winit::WindowBuilder::new()
-        .with_dimensions(winit::dpi::LogicalSize::new(1024 as _, 768 as _))
+        .with_dimensions(winit::dpi::LogicalSize::new(width as _, height as _))
         .with_title("halogen".to_string())
         .build(&events_loop)
         .expect("Failed to create window.");

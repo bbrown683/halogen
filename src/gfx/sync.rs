@@ -3,6 +3,8 @@ use std::rc::Rc;
 use hal::{Backend, Device};
 use crate::gfx::GfxDevice;
 
+/// Manages syncronization primitives, which is accessed by the `GfxSwapchain` in order to validate
+/// if a image can be acquired, or waiting to submit to a queue, etc.
 pub struct GfxSync<B :Backend> {
     device : Rc<RefCell<GfxDevice<B>>>,
     pub fence : Option<B::Fence>,
