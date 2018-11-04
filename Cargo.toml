@@ -11,10 +11,11 @@ gfx-backend-dx12 = { git = "https://github.com/gfx-rs/gfx" }
 gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx" }
 gltf = "0.11.2"
 image = "0.20.0"
+imgui = "0.0.21"
 log = "0.4.6"
 nalgebra = "0.16.5"
 num_cpus = "1.8.0"
+rayon = "1.0.3"
 rusttype = "0.7.2"
 specs = "0.14.0"
-threadpool = "1.7.1"
 winit = "0.17.2"

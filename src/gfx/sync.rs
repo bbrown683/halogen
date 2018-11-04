@@ -5,12 +5,12 @@ use crate::gfx::GfxDevice;
 
 pub struct GfxSync<B :Backend> {
     device : Rc<RefCell<GfxDevice<B>>>,
-    fence : Option<B::Fence>,
-    present_semaphores : Option<Vec<B::Semaphore>>
+    pub fence : Option<B::Fence>,
+    pub present_semaphores : Option<Vec<B::Semaphore>>
 }
 
 impl<B: Backend> GfxSync<B> {
-    pub fn new(device : Rc<RefCell<GfxDevice<B>>>, image_count : u32) -> Result<Self,()> {
+    pub fn new(device : Rc<RefCell<GfxDevice<B>>>, image_count : u32) -> Self {
         let fence = Some(device.borrow().logical_device.create_fence(true).expect("Failed to create fence."));
         let mut present_semaphores = Vec::<B::Semaphore>::new();
         let mut current_count  = 0;
@@ -18,7 +18,7 @@ impl<B: Backend> GfxSync<B> {
             present_semaphores.push(device.borrow().logical_device.create_semaphore().expect("Failed to create semaphore."));
             current_count = current_count + 1;
         }
-        Ok(Self { device, fence, present_semaphores: Some(present_semaphores) })
+        Self { device, fence, present_semaphores: Some(present_semaphores) }
     }
 }
 

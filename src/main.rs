@@ -2,9 +2,15 @@
 extern crate env_logger;
 extern crate gfx_hal as hal;
 extern crate gfx_backend_vulkan as back;
+extern crate gltf;
+extern crate image;
+extern crate imgui;
 extern crate log;
 extern crate nalgebra;
 extern crate num_cpus;
+extern crate rayon;
+extern crate rusttype;
+extern crate specs;
 extern crate winit;
 
 mod gfx;

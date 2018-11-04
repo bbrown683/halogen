@@ -6,9 +6,9 @@ use hal::pool;
 
 pub struct GfxDevice<B: Backend> {
     pub physical_device : B::PhysicalDevice,
-    pub enabled_features : Features,
-    pub memory_properties : MemoryProperties,
-    pub limits : Limits,
+    enabled_features : Features,
+    memory_properties : MemoryProperties,
+    limits : Limits,
     pub logical_device : B::Device,
     pub queue_group : QueueGroup<B, Graphics>,
     pub command_pool : Option<CommandPool<B, Graphics>>
@@ -38,5 +38,17 @@ impl<B: Backend> GfxDevice<B> {
         let limits = physical_device.limits();
         Self { physical_device, enabled_features, memory_properties, limits, logical_device, queue_group,
             command_pool }
+    }
+
+    pub fn get_enabled_features(self) -> Features {
+        self.enabled_features.clone()
+    }
+
+    pub fn get_limits(self) -> Limits {
+        self.limits.clone()
+    }
+
+    pub fn get_memory_properties(self) -> MemoryProperties {
+        self.memory_properties.clone()
     }
 }

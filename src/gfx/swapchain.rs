@@ -1,23 +1,27 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Backbuffer, Backend, Device, SurfaceCapabilities, PresentMode, Surface, SwapchainConfig};
+use hal::{Backbuffer, Backend, Device, FrameSync, SurfaceCapabilities, PresentMode, Surface,
+          Swapchain, SwapchainConfig};
 use hal::format::{self, ChannelType};
 use hal::{image, pool};
-use crate::gfx::GfxDevice;
+use crate::gfx::{GfxDevice, GfxSync};
 
 // Represents the Swapchain parameters for presenting to the screen.
 pub struct GfxSwapchain<B: Backend> {
     caps : SurfaceCapabilities,
     swap_config : SwapchainConfig,
     device : Rc<RefCell<GfxDevice<B>>>,
+    sync : Rc<RefCell<GfxSync<B>>>,
+    current_image : u32,
     swapchain : Option<B::Swapchain>,
-    backbuffer : Option<Backbuffer<B>>
+    backbuffer : Option<Backbuffer<B>>,
 }
 
 impl<B: Backend> GfxSwapchain<B> {
     // Creates a new swapchain with the given surface. This function will only need to be called once.
     // Any events that break the existing swapchain `should` call `recreate`.
     pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
+               sync : Rc<RefCell<GfxSync<B>>>,
                mut surface : &mut B::Surface,
                image_count : u32) -> Result<Self,&str> {
         let (caps, formats, _present_modes) = surface.compatibility(&device.borrow().physical_device);
@@ -45,12 +49,26 @@ impl<B: Backend> GfxSwapchain<B> {
         let (swapchain, backbuffer) = device.borrow().logical_device
             .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
-        Ok(Self { caps, swap_config, device,
+        Ok(Self { caps, swap_config, device, sync, current_image: 0,
             swapchain: Some(swapchain), backbuffer: Some(backbuffer) })
     }
 
     pub fn recreate(self) {
         unimplemented!()
+    }
+
+    pub fn prepare_frame(mut self) {
+        let image = self.swapchain.as_mut().unwrap()
+            .acquire_image(u64::max_value(), FrameSync::Fence(self.sync.borrow().fence.as_ref().unwrap()))
+            .expect("Failed to acquire swapchain image.");
+    }
+
+    pub fn present_frame(&mut self) {
+//        &self.swapchain.as_mut().unwrap().present(self.device.borrow().queue_group.queues[0], self.current_image)
+    }
+
+    pub fn get_swap_config(self) -> SwapchainConfig {
+        self.swap_config.clone()
     }
 }
 
