@@ -1,17 +1,21 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Adapter, Backend, Instance, Surface };
-use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxSwapchain, GfxSync };
+use nalgebra::Vector3;
+use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxSwapchain, GfxSync, encoder, Vertex };
 
 pub struct RenderSystem {
     backend : GfxBackend,
     device : Option<Rc<RefCell<GfxDevice<GfxBackendType>>>>,
     sync : Option<Rc<RefCell<GfxSync<GfxBackendType>>>>,
     swapchain : Option<GfxSwapchain<GfxBackendType>>,
+    encoder : Option<encoder::GfxEncoder<GfxBackendType>>,
 }
 
 impl Drop for RenderSystem {
     fn drop(&mut self) {
+        self.encoder.take();
+        debug_assert!(self.encoder.is_none());
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
         self.sync.take();
@@ -40,19 +44,21 @@ impl RenderSystem {
             Rc::clone(&sync.clone().unwrap()),
             &mut backend.surface, 2).ok();
 
-        Self { backend, device, sync, swapchain }
+        let mut vertices : Vec<Vertex> = Vec::new();
+        vertices.push(Vertex { position : Vector3::new(-1.0, -1.0, 0.0)});
+        vertices.push( Vertex { position : Vector3::new(1.0, -1.0, 0.0)});
+        vertices.push( Vertex { position : Vector3::new(0.0, 1.0, 0.0)});
+
+        let encoder = Some(encoder::EncoderBuilder::new(Rc::clone(&device.clone().unwrap()))
+            .with_vertex_shader(include_bytes!("../shaders/default.vert.spv").to_vec())
+            .with_fragment_shader(include_bytes!("../shaders/default.frag.spv").to_vec())
+            .with_vertices(vertices)
+            .build());
+        Self { backend, device, sync, swapchain, encoder }
     }
 
-    pub fn create_render_world(self) {
-        unimplemented!()
-    }
+    pub fn draw_scene(self) {
 
-    pub fn begin_frame(self) {
-        unimplemented!()
-    }
-
-    pub fn end_frame(self) {
-        unimplemented!()
     }
 
     pub fn on_resize(self, width : u32, height : u32) {

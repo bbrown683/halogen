@@ -1,4 +1,4 @@
-mod encoder;
+pub mod encoder;
 mod device;
 mod swapchain;
 mod sync;
@@ -14,8 +14,8 @@ use nalgebra::{Vector2, Vector3, Vector4};
 pub type GfxBackendType = back::Backend;
 
 pub struct Vertex {
-    position : Vector3<f32>,
-    color : Vector4<f32>,
+    pub position : Vector3<f32>,
+//    color : Vector4<f32>,
 }
 
 pub struct GfxBackend {

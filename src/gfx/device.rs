@@ -6,9 +6,9 @@ use hal::pool;
 
 pub struct GfxDevice<B: Backend> {
     pub physical_device : B::PhysicalDevice,
-    enabled_features : Features,
-    memory_properties : MemoryProperties,
-    limits : Limits,
+    pub enabled_features : Features,
+    pub memory_properties : MemoryProperties,
+    pub limits : Limits,
     pub logical_device : B::Device,
     pub queue_group : QueueGroup<B, Graphics>,
     pub command_pool : Option<CommandPool<B, Graphics>>

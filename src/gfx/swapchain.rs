@@ -8,11 +8,11 @@ use crate::gfx::{GfxDevice, GfxSync};
 
 // Represents the Swapchain parameters for presenting to the screen.
 pub struct GfxSwapchain<B: Backend> {
-    caps : SurfaceCapabilities,
-    swap_config : SwapchainConfig,
+    pub current_image : u32,
+    pub caps : SurfaceCapabilities,
+    pub swap_config : SwapchainConfig,
     device : Rc<RefCell<GfxDevice<B>>>,
     sync : Rc<RefCell<GfxSync<B>>>,
-    current_image : u32,
     swapchain : Option<B::Swapchain>,
     backbuffer : Option<Backbuffer<B>>,
 }
@@ -49,7 +49,7 @@ impl<B: Backend> GfxSwapchain<B> {
         let (swapchain, backbuffer) = device.borrow().logical_device
             .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
-        Ok(Self { caps, swap_config, device, sync, current_image: 0,
+        Ok(Self { current_image: 0, caps, swap_config, device, sync,
             swapchain: Some(swapchain), backbuffer: Some(backbuffer) })
     }
 
@@ -65,10 +65,6 @@ impl<B: Backend> GfxSwapchain<B> {
 
     pub fn present_frame(&mut self) {
 //        &self.swapchain.as_mut().unwrap().present(self.device.borrow().queue_group.queues[0], self.current_image)
-    }
-
-    pub fn get_swap_config(self) -> SwapchainConfig {
-        self.swap_config.clone()
     }
 }
 
