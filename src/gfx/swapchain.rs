@@ -2,8 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Backbuffer, Backend, Device, FrameSync, SurfaceCapabilities, PresentMode, Surface,
           Swapchain, SwapchainConfig};
-use hal::format::{self, ChannelType};
-use hal::{image, pool};
+use hal::format;
 use crate::gfx::{GfxDevice, GfxSync};
 
 // Represents the Swapchain parameters for presenting to the screen.
@@ -24,11 +23,12 @@ impl<B: Backend> GfxSwapchain<B> {
                sync : Rc<RefCell<GfxSync<B>>>,
                mut surface : &mut B::Surface,
                image_count : u32) -> Result<Self,&str> {
-        let (caps, formats, _present_modes) = surface.compatibility(&device.borrow().physical_device);
+        let (caps, _formats, _present_modes) = surface.compatibility(&device.borrow().physical_device);
         if !caps.image_count.contains(&image_count) {
             return Err("image_count parameter was not within valid boundaries.");
         }
 
+        /*
         let format = formats
             .map_or(format::Format::Rgba8Srgb, |formats| {
                 formats
@@ -37,6 +37,7 @@ impl<B: Backend> GfxSwapchain<B> {
                     .map(|format| *format)
                     .unwrap_or(formats[0])
             });
+        */
         println!("{:?}", caps);
         let extent = caps.current_extent.unwrap().to_extent();
         let swap_config = SwapchainConfig::new(
@@ -53,19 +54,17 @@ impl<B: Backend> GfxSwapchain<B> {
             swapchain: Some(swapchain), backbuffer: Some(backbuffer) })
     }
 
-    pub fn recreate(self) {
-        unimplemented!()
-    }
-
+    /*
     pub fn prepare_frame(mut self) {
-        let image = self.swapchain.as_mut().unwrap()
+        let _image = self.swapchain.as_mut().unwrap()
             .acquire_image(u64::max_value(), FrameSync::Fence(self.sync.borrow().fence.as_ref().unwrap()))
             .expect("Failed to acquire swapchain image.");
     }
 
     pub fn present_frame(&mut self) {
-//        &self.swapchain.as_mut().unwrap().present(self.device.borrow().queue_group.queues[0], self.current_image)
+        &self.swapchain.as_mut().unwrap().present(self.device.borrow().queue_group.queues[0], self.current_image)
     }
+    */
 }
 
 impl<B: Backend> Drop for GfxSwapchain<B> {

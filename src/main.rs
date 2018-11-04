@@ -15,13 +15,13 @@ extern crate rusttype;
 extern crate specs;
 extern crate winit;
 
-use clap::{Arg, App, SubCommand, crate_name, crate_version, crate_authors, crate_description};
+use clap::{ Arg, App, crate_authors, crate_description, crate_name, crate_version };
 
 mod gfx;
 mod render;
 
 fn main() {
-    let matches = App::new(crate_name!())
+    let _matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
@@ -42,7 +42,7 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let system = render::RenderSystem::new(&window);
+    let _system = render::RenderSystem::new(&window);
 
     let mut running = true;
     while running {

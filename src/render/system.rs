@@ -1,15 +1,15 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Adapter, Backend, Instance, Surface };
 use nalgebra::Vector3;
-use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxSwapchain, GfxSync, encoder, Vertex };
+use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxEncoder, GfxSwapchain,
+                 GfxSync, GfxRenderable, GfxVertex};
 
 pub struct RenderSystem {
     backend : GfxBackend,
     device : Option<Rc<RefCell<GfxDevice<GfxBackendType>>>>,
     sync : Option<Rc<RefCell<GfxSync<GfxBackendType>>>>,
     swapchain : Option<GfxSwapchain<GfxBackendType>>,
-    encoder : Option<encoder::GfxEncoder<GfxBackendType>>,
+    encoder : Option<GfxEncoder<GfxBackendType>>,
 }
 
 impl Drop for RenderSystem {
@@ -44,24 +44,23 @@ impl RenderSystem {
             Rc::clone(&sync.clone().unwrap()),
             &mut backend.surface, 2).ok();
 
-        let mut vertices : Vec<Vertex> = Vec::new();
-        vertices.push(Vertex { position : Vector3::new(-1.0, -1.0, 0.0)});
-        vertices.push( Vertex { position : Vector3::new(1.0, -1.0, 0.0)});
-        vertices.push( Vertex { position : Vector3::new(0.0, 1.0, 0.0)});
+        // Vertices for our triangle.
+        let mut vertices : Vec<GfxVertex> = Vec::new();
+        vertices.push(GfxVertex { position : Vector3::new(-1.0, -1.0, 0.0)});
+        vertices.push( GfxVertex { position : Vector3::new(1.0, -1.0, 0.0)});
+        vertices.push( GfxVertex { position : Vector3::new(0.0, 1.0, 0.0)});
 
-        let encoder = Some(encoder::EncoderBuilder::new(Rc::clone(&device.clone().unwrap()))
-            .with_vertex_shader(include_bytes!("../shaders/default.vert.spv").to_vec())
-            .with_fragment_shader(include_bytes!("../shaders/default.frag.spv").to_vec())
-            .with_vertices(vertices)
-            .build());
+        // Render state associated with our triangle.
+        let renderable = GfxRenderable::new(
+            Rc::clone(&device.clone().unwrap()),
+            vertices,
+            None,
+            include_bytes!("../shaders/default.vert.spv").to_vec(),
+            include_bytes!("../shaders/default.frag.spv").to_vec());
+
+        let encoder = Some(GfxEncoder::new(
+            Rc::clone(&device.clone().unwrap()),
+            renderable));
         Self { backend, device, sync, swapchain, encoder }
-    }
-
-    pub fn draw_scene(self) {
-
-    }
-
-    pub fn on_resize(self, width : u32, height : u32) {
-        unimplemented!()
     }
 }
