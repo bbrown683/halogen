@@ -1,2 +1,2 @@
 # halogen
-Rendering engine over gfx-hal.
+Very early WIP rendering engine over gfx-hal.

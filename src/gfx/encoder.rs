@@ -21,7 +21,7 @@ impl<B: Backend> Drop for GfxEncoder<B> {
 
 impl<B: Backend> GfxEncoder<B> {
     pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
-               renderable :GfxRenderable<B>) -> Self {
+               renderable : GfxRenderable<B>) -> Self {
         let viewport = pso::Viewport {
             rect: pso::Rect {
                 x: 0,

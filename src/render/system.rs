@@ -19,7 +19,7 @@ impl Drop for RenderSystem {
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
         self.sync.take();
-        debug_assert!(  self.sync.is_none());
+        debug_assert!(self.sync.is_none());
         self.device.take();
         debug_assert!(self.device.is_none());
     }
@@ -45,16 +45,21 @@ impl RenderSystem {
             &mut backend.surface, 2).ok();
 
         // Vertices for our triangle.
-        let mut vertices : Vec<GfxVertex> = Vec::new();
+        let mut vertices = Vec::<GfxVertex>::new();
         vertices.push(GfxVertex { position : Vector3::new(-1.0, -1.0, 0.0)});
         vertices.push( GfxVertex { position : Vector3::new(1.0, -1.0, 0.0)});
         vertices.push( GfxVertex { position : Vector3::new(0.0, 1.0, 0.0)});
+
+        let mut indices = Vec::<u16>::new();
+        indices.push(0);
+        indices.push(1);
+        indices.push(2);
 
         // Render state associated with our triangle.
         let renderable = GfxRenderable::new(
             Rc::clone(&device.clone().unwrap()),
             vertices,
-            None,
+            indices,
             include_bytes!("../shaders/default.vert.spv").to_vec(),
             include_bytes!("../shaders/default.frag.spv").to_vec());
 

@@ -7,6 +7,7 @@ use nalgebra::{Vector3};
 use crate::gfx::GfxDevice;
 
 /// Vertex structure for a `GfxRenderable`.
+#[derive(Clone, Copy)]
 pub struct GfxVertex {
     /// 3-Dimensional coordinates in space denoted by x, y, and z.
     pub position : Vector3<f32>,
@@ -19,7 +20,9 @@ pub struct GfxVertex {
 pub struct GfxRenderable<B: Backend> {
     device : Rc<RefCell<GfxDevice<B>>>,
     pub vertex_buffer : Option<B::Buffer>,
+    pub vertex_buffer_memory : Option<B::Memory>,
     pub index_buffer : Option<B::Buffer>,
+    pub index_buffer_memory : Option<B::Memory>,
     pub desc_set_layout : Option<B::DescriptorSetLayout>,
     pub pipeline : Option<B::GraphicsPipeline>,
     pub pipeline_layout : Option<B::PipelineLayout>,
@@ -27,13 +30,14 @@ pub struct GfxRenderable<B: Backend> {
 
 impl<B: Backend> Drop for GfxRenderable<B> {
     fn drop(&mut self) {
-        if self.index_buffer.is_some() {
-            &self.device.borrow().logical_device.destroy_buffer(self.index_buffer.take().unwrap());
-            debug_assert!(self.index_buffer.is_none());
-        }
-
         &self.device.borrow().logical_device.destroy_buffer(self.vertex_buffer.take().unwrap());
         debug_assert!(self.vertex_buffer.is_none());
+        &self.device.borrow().logical_device.free_memory(self.vertex_buffer_memory.take().unwrap());
+        debug_assert!(self.vertex_buffer_memory.is_none());
+        &self.device.borrow().logical_device.destroy_buffer(self.index_buffer.take().unwrap());
+        debug_assert!(self.index_buffer.is_none());
+        &self.device.borrow().logical_device.free_memory(self.index_buffer_memory.take().unwrap());
+        debug_assert!(self.index_buffer_memory.is_none());
         &self.device.borrow().logical_device.destroy_descriptor_set_layout(self.desc_set_layout.take().unwrap());
         debug_assert!(self.desc_set_layout.is_none());
         &self.device.borrow().logical_device.destroy_pipeline_layout(self.pipeline_layout.take().unwrap());
@@ -46,11 +50,11 @@ impl<B: Backend> Drop for GfxRenderable<B> {
 impl<B: Backend> GfxRenderable<B> {
     pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
                vertices : Vec<GfxVertex>,
-               indices : Option<Vec<u16>>,
+               indices : Vec<u16>,
                vertex_bytes : Vec<u8>,
                fragment_bytes : Vec<u8>) -> Self {
         // Create vertex buffer.
-        let vertex_buffer = {
+        let (vertex_buffer_memory, vertex_buffer) = {
             let device_borrow = device.borrow();
 
             let buffer_stride = std::mem::size_of::<GfxVertex>() as u64;
@@ -73,50 +77,65 @@ impl<B: Backend> GfxRenderable<B> {
                 .unwrap()
                 .into();
 
-            let buffer_memory = device_borrow.logical_device
+            let vertex_buffer_memory = device_borrow.logical_device
                 .allocate_memory(upload_type, buffer_req.size)
                 .unwrap();
 
-            Some(device_borrow.logical_device
-                .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
-                .expect("Failed to create vertex buffer"))
+            let vertex_buffer = device_borrow.logical_device
+                .bind_buffer_memory(&vertex_buffer_memory, 0, buffer_unbound)
+                .expect("Failed to create vertex buffer");
+
+            // Copy vertices into buffer.
+            let mut vertices_copy = device_borrow.logical_device
+                .acquire_mapping_writer::<GfxVertex>(&vertex_buffer_memory, 0..buffer_req.size)
+                .unwrap();
+            vertices_copy[0..vertices.len()].copy_from_slice(&vertices);
+            device_borrow.logical_device.release_mapping_writer(vertices_copy).unwrap();
+
+            (vertex_buffer_memory, vertex_buffer)
         };
 
+
         // Create index buffer.
-        let index_buffer = {
-            if indices.is_some() {
-                let device_borrow = device.borrow();
+        let (index_buffer_memory, index_buffer) = {
+            let device_borrow = device.borrow();
 
-                let buffer_stride = std::mem::size_of::<u16>() as u64;
-                let buffer_len = indices.as_ref().unwrap().len() as u64 * buffer_stride;
+            let buffer_stride = std::mem::size_of::<u16>() as u64;
+            let buffer_len = indices.len() as u64 * buffer_stride;
 
-                let buffer_unbound = device_borrow.logical_device
-                    .create_buffer(buffer_len, buffer::Usage::INDEX)
-                    .unwrap();
-                let buffer_req = device.borrow().logical_device
-                    .get_buffer_requirements(&buffer_unbound);
+            let buffer_unbound = device_borrow.logical_device
+                .create_buffer(buffer_len, buffer::Usage::INDEX)
+                .unwrap();
+            let buffer_req = device.borrow().logical_device
+                .get_buffer_requirements(&buffer_unbound);
 
-                let memory_types = device_borrow.memory_properties.memory_types.clone();
-                let upload_type = memory_types
-                    .iter()
-                    .enumerate()
-                    .position(|(id, mem_type)| {
-                        buffer_req.type_mask & (1 << id) != 0
-                            && mem_type.properties.contains(memory::Properties::CPU_VISIBLE)
-                    })
-                    .unwrap()
-                    .into();
+            let memory_types = device_borrow.memory_properties.memory_types.clone();
+            let upload_type = memory_types
+                .iter()
+                .enumerate()
+                .position(|(id, mem_type)| {
+                    buffer_req.type_mask & (1 << id) != 0
+                        && mem_type.properties.contains(memory::Properties::CPU_VISIBLE)
+                })
+                .unwrap()
+                .into();
 
-                let buffer_memory = device_borrow.logical_device
-                    .allocate_memory(upload_type, buffer_req.size)
-                    .unwrap();
+            let index_buffer_memory = device_borrow.logical_device
+                .allocate_memory(upload_type, buffer_req.size)
+                .unwrap();
 
-                Some(device_borrow.logical_device
-                    .bind_buffer_memory(&buffer_memory, 0, buffer_unbound)
-                    .expect("Failed to create vertex buffer"))
-            } else {
-                None
-            }
+            let index_buffer = device_borrow.logical_device
+                .bind_buffer_memory(&index_buffer_memory, 0, buffer_unbound)
+                .expect("Failed to create vertex buffer");
+
+            // Copy indices into buffer.
+            let mut indices_copy = device_borrow.logical_device
+                .acquire_mapping_writer::<u16>(&index_buffer_memory, 0..buffer_req.size)
+                .unwrap();
+            indices_copy[0..indices.len()].copy_from_slice(&indices);
+            device_borrow.logical_device.release_mapping_writer(indices_copy).unwrap();
+
+            (index_buffer_memory, index_buffer)
         };
 
         let desc_set_layout = device.borrow().logical_device
@@ -212,7 +231,8 @@ impl<B: Backend> GfxRenderable<B> {
             pipeline.expect("Failed to create pipeline")
         };
 
-        Self { device, vertex_buffer, index_buffer, desc_set_layout: Some(desc_set_layout),
-            pipeline: Some(pipeline), pipeline_layout: Some(pipeline_layout) }
+        Self { device, vertex_buffer: Some(vertex_buffer), vertex_buffer_memory: Some(vertex_buffer_memory),
+            index_buffer: Some(index_buffer), index_buffer_memory: Some(index_buffer_memory),
+            desc_set_layout: Some(desc_set_layout), pipeline: Some(pipeline), pipeline_layout: Some(pipeline_layout) }
     }
 }

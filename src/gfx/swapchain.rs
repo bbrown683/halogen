@@ -1,31 +1,39 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Backbuffer, Backend, Device, FrameSync, SurfaceCapabilities, PresentMode, Surface,
-          Swapchain, SwapchainConfig};
-use hal::format;
+use hal::{format, image};
+use hal::{Backbuffer, Backend, Device, SurfaceCapabilities, PresentMode, Surface, SwapchainConfig};
 use crate::gfx::{GfxDevice, GfxSync};
 
 /// Controls the presentation to a surface.
 pub struct GfxSwapchain<B: Backend> {
+    device : Rc<RefCell<GfxDevice<B>>>,
+    sync : Rc<RefCell<GfxSync<B>>>,
     pub current_image : u32,
     pub caps : SurfaceCapabilities,
     pub swap_config : SwapchainConfig,
-    device : Rc<RefCell<GfxDevice<B>>>,
-    sync : Rc<RefCell<GfxSync<B>>>,
-    swapchain : Option<B::Swapchain>,
-    backbuffer : Option<Backbuffer<B>>,
+    pub swapchain : Option<B::Swapchain>,
+    pub frame_images: Option<Vec<(B::Image, B::ImageView)>>,
+    pub framebuffers: Option<Vec<B::Framebuffer>>,
 }
 
 impl<B: Backend> Drop for GfxSwapchain<B> {
     fn drop(&mut self) {
+        for framebuffer in self.framebuffers.take().unwrap() {
+            &self.device.borrow().logical_device.destroy_framebuffer(framebuffer);
+        }
+        debug_assert!(self.framebuffers.is_none());
+        for (_, rtv) in self.frame_images.take().unwrap() {
+            &self.device.borrow().logical_device.destroy_image_view(rtv);
+        }
+        debug_assert!(self.frame_images.is_none());
         &self.device.borrow().logical_device.destroy_swapchain(self.swapchain.take().unwrap());
         debug_assert!(self.swapchain.is_none());
     }
 }
 
 impl<B: Backend> GfxSwapchain<B> {
-    // Creates a new swapchain with the given surface. This function will only need to be called once.
-    // Any events that break the existing swapchain `should` call `recreate`.
+    /// Creates a new swapchain with the given surface. This function will only need to be called once.
+    /// Any events that break the existing swapchain `should` call `recreate`.
     pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
                sync : Rc<RefCell<GfxSync<B>>>,
                mut surface : &mut B::Surface,
@@ -35,17 +43,6 @@ impl<B: Backend> GfxSwapchain<B> {
             return Err("image_count parameter was not within valid boundaries.");
         }
 
-        /*
-        let format = formats
-            .map_or(format::Format::Rgba8Srgb, |formats| {
-                formats
-                    .iter()
-                    .find(|format| format.base_format().1 == ChannelType::Srgb)
-                    .map(|format| *format)
-                    .unwrap_or(formats[0])
-            });
-        */
-        println!("{:?}", caps);
         let extent = caps.current_extent.unwrap().to_extent();
         let swap_config = SwapchainConfig::new(
             extent.width,
@@ -53,12 +50,55 @@ impl<B: Backend> GfxSwapchain<B> {
             format::Format::Rgba8Unorm,
             image_count)
             .with_mode(PresentMode::Fifo); // Vulkan spec guarantee's this mode.
-        println!("{:?}", swap_config);
         let (swapchain, backbuffer) = device.borrow().logical_device
             .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
+
+        let (frame_images, framebuffers) = match backbuffer {
+            Backbuffer::Images(images) => {
+                let device_borrow = device.borrow();
+
+                let extent = image::Extent {
+                    width: extent.width as _,
+                    height: extent.height as _,
+                    depth: 1,
+                };
+                let pairs = images
+                    .into_iter()
+                    .map(|image| {
+                        let color_range = image::SubresourceRange {
+                            aspects: format::Aspects::COLOR,
+                            levels: 0..1,
+                            layers: 0..1,
+                        };
+
+                        let rtv = device_borrow.logical_device
+                            .create_image_view(
+                                &image,
+                                image::ViewKind::D2,
+                                format::Format::Rgba8Unorm,
+                                format::Swizzle::NO,
+                                color_range,
+                            )
+                            .unwrap();
+                        (image, rtv)
+                    })
+                    .collect::<Vec<_>>();
+                let fbos = pairs
+                    .iter()
+                    .map(|&(_, ref rtv)| {
+                        device_borrow.logical_device
+                            .create_framebuffer(device_borrow.render_pass.as_ref().unwrap(), Some(rtv), extent)
+                            .unwrap()
+                    })
+                    .collect();
+                (pairs, fbos)
+            }
+            Backbuffer::Framebuffer(fbo) => (Vec::new(), vec![fbo]),
+        };
+
         Ok(Self { current_image: 0, caps, swap_config, device, sync,
-            swapchain: Some(swapchain), backbuffer: Some(backbuffer) })
+            swapchain: Some(swapchain), frame_images: Some(frame_images), framebuffers: Some(framebuffers) })
     }
 
     /*

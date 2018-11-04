@@ -28,6 +28,7 @@ impl<B: Backend> Drop for GfxDevice<B> {
 }
 
 impl<B: Backend> GfxDevice<B> {
+    /// Creates a new rendering device for the specified adapter and surface.
     pub fn new(adapter : Adapter<B>, surface : &B::Surface) -> Self {
         let (logical_device, queue_group) = adapter
             .open_with::<_, hal::Graphics>(1, |family | surface.supports_queue_family(family))

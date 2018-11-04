@@ -12,3 +12,5 @@ Cargo.lock
 # Intellij project data
 *.iml
 .idea
+
+/log/
