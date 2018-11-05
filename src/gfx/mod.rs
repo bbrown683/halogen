@@ -1,11 +1,9 @@
 mod device;
-mod encoder;
 mod renderable;
 mod swapchain;
 mod sync;
 
 pub use self::device::GfxDevice;
-pub use self::encoder::GfxEncoder;
 pub use self::renderable::{GfxRenderable, GfxVertex};
 pub use self::swapchain::GfxSwapchain;
 pub use self::sync::GfxSync;

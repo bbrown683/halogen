@@ -30,19 +30,19 @@ pub struct GfxRenderable<B: Backend> {
 
 impl<B: Backend> Drop for GfxRenderable<B> {
     fn drop(&mut self) {
-        &self.device.borrow().logical_device.destroy_buffer(self.vertex_buffer.take().unwrap());
+        &self.device.borrow().get_logical_device().borrow().destroy_buffer(self.vertex_buffer.take().unwrap());
         debug_assert!(self.vertex_buffer.is_none());
-        &self.device.borrow().logical_device.free_memory(self.vertex_buffer_memory.take().unwrap());
+        &self.device.borrow().get_logical_device().borrow().free_memory(self.vertex_buffer_memory.take().unwrap());
         debug_assert!(self.vertex_buffer_memory.is_none());
-        &self.device.borrow().logical_device.destroy_buffer(self.index_buffer.take().unwrap());
+        &self.device.borrow().get_logical_device().borrow().destroy_buffer(self.index_buffer.take().unwrap());
         debug_assert!(self.index_buffer.is_none());
-        &self.device.borrow().logical_device.free_memory(self.index_buffer_memory.take().unwrap());
+        &self.device.borrow().get_logical_device().borrow().free_memory(self.index_buffer_memory.take().unwrap());
         debug_assert!(self.index_buffer_memory.is_none());
-        &self.device.borrow().logical_device.destroy_descriptor_set_layout(self.desc_set_layout.take().unwrap());
+        &self.device.borrow().get_logical_device().borrow().destroy_descriptor_set_layout(self.desc_set_layout.take().unwrap());
         debug_assert!(self.desc_set_layout.is_none());
-        &self.device.borrow().logical_device.destroy_pipeline_layout(self.pipeline_layout.take().unwrap());
+        &self.device.borrow().get_logical_device().borrow().destroy_pipeline_layout(self.pipeline_layout.take().unwrap());
         debug_assert!(self.pipeline_layout.is_none());
-        &self.device.borrow().logical_device.destroy_graphics_pipeline(self.pipeline.take().unwrap());
+        &self.device.borrow().get_logical_device().borrow().destroy_graphics_pipeline(self.pipeline.take().unwrap());
         debug_assert!(self.pipeline.is_none());
     }
 }
@@ -55,18 +55,22 @@ impl<B: Backend> GfxRenderable<B> {
                fragment_bytes : Vec<u8>) -> Self {
         // Create vertex buffer.
         let (vertex_buffer_memory, vertex_buffer) = {
-            let device_borrow = device.borrow();
-
             let buffer_stride = std::mem::size_of::<GfxVertex>() as u64;
             let buffer_len = vertices.len() as u64 * buffer_stride;
 
-            let buffer_unbound = device_borrow.logical_device
+            let buffer_unbound = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .create_buffer(buffer_len, buffer::Usage::VERTEX)
                 .unwrap();
-            let buffer_req = device.borrow().logical_device
+            let buffer_req = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .get_buffer_requirements(&buffer_unbound);
 
-            let memory_types = device_borrow.memory_properties.memory_types.clone();
+            let memory_types = device.borrow().get_memory_properties().memory_types.clone();
             let upload_type = memory_types
                 .iter()
                 .enumerate()
@@ -77,20 +81,29 @@ impl<B: Backend> GfxRenderable<B> {
                 .unwrap()
                 .into();
 
-            let vertex_buffer_memory = device_borrow.logical_device
+            let vertex_buffer_memory = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .allocate_memory(upload_type, buffer_req.size)
                 .unwrap();
 
-            let vertex_buffer = device_borrow.logical_device
+            let vertex_buffer = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .bind_buffer_memory(&vertex_buffer_memory, 0, buffer_unbound)
                 .expect("Failed to create vertex buffer");
 
             // Copy vertices into buffer.
-            let mut vertices_copy = device_borrow.logical_device
+            let mut vertices_copy = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .acquire_mapping_writer::<GfxVertex>(&vertex_buffer_memory, 0..buffer_req.size)
                 .unwrap();
             vertices_copy[0..vertices.len()].copy_from_slice(&vertices);
-            device_borrow.logical_device.release_mapping_writer(vertices_copy).unwrap();
+            device.borrow().get_logical_device().borrow().release_mapping_writer(vertices_copy).unwrap();
 
             (vertex_buffer_memory, vertex_buffer)
         };
@@ -98,18 +111,22 @@ impl<B: Backend> GfxRenderable<B> {
 
         // Create index buffer.
         let (index_buffer_memory, index_buffer) = {
-            let device_borrow = device.borrow();
-
             let buffer_stride = std::mem::size_of::<u16>() as u64;
             let buffer_len = indices.len() as u64 * buffer_stride;
 
-            let buffer_unbound = device_borrow.logical_device
+            let buffer_unbound = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .create_buffer(buffer_len, buffer::Usage::INDEX)
                 .unwrap();
-            let buffer_req = device.borrow().logical_device
+            let buffer_req = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .get_buffer_requirements(&buffer_unbound);
 
-            let memory_types = device_borrow.memory_properties.memory_types.clone();
+            let memory_types = device.borrow().get_memory_properties().memory_types.clone();
             let upload_type = memory_types
                 .iter()
                 .enumerate()
@@ -120,43 +137,61 @@ impl<B: Backend> GfxRenderable<B> {
                 .unwrap()
                 .into();
 
-            let index_buffer_memory = device_borrow.logical_device
+            let index_buffer_memory = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .allocate_memory(upload_type, buffer_req.size)
                 .unwrap();
 
-            let index_buffer = device_borrow.logical_device
+            let index_buffer = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .bind_buffer_memory(&index_buffer_memory, 0, buffer_unbound)
                 .expect("Failed to create vertex buffer");
 
             // Copy indices into buffer.
-            let mut indices_copy = device_borrow.logical_device
+            let mut indices_copy = device
+                .borrow()
+                .get_logical_device()
+                .borrow()
                 .acquire_mapping_writer::<u16>(&index_buffer_memory, 0..buffer_req.size)
                 .unwrap();
             indices_copy[0..indices.len()].copy_from_slice(&indices);
-            device_borrow.logical_device.release_mapping_writer(indices_copy).unwrap();
+            device.borrow().get_logical_device().borrow().release_mapping_writer(indices_copy).unwrap();
 
             (index_buffer_memory, index_buffer)
         };
 
-        let desc_set_layout = device.borrow().logical_device
+        let desc_set_layout = device
+            .borrow()
+            .get_logical_device()
+            .borrow()
             .create_descriptor_set_layout(&[], &[])
             .expect("Can't create descriptor set layout");
 
-        let pipeline_layout = device.borrow().logical_device
+        let pipeline_layout = device
+            .borrow()
+            .get_logical_device()
+            .borrow()
             .create_pipeline_layout(std::iter::once(&desc_set_layout), &[(pso::ShaderStageFlags::VERTEX, 0..8)])
             .expect("Can't create pipeline layout");
 
         // Render pipeline.
         let pipeline = {
-            let device_borrow = device.borrow();
+            let device_borrow = device
+                .borrow();
 
             // Create vertex and fragment shader modules.
             let vertex_module = device_borrow
-                .logical_device
+                .get_logical_device()
+                .borrow()
                 .create_shader_module(&vertex_bytes)
                 .expect("Failed to create shader module.");
             let fragment_module = device_borrow
-                .logical_device
+                .get_logical_device()
+                .borrow()
                 .create_shader_module(&fragment_bytes)
                 .expect("Failed to create shader module.");
 
@@ -192,7 +227,7 @@ impl<B: Backend> GfxRenderable<B> {
 
                 let subpass = Subpass {
                     index: 0,
-                    main_pass: device_borrow.render_pass.as_ref().unwrap(),
+                    main_pass: device_borrow.get_render_pass().borrow().as_ref().unwrap(),
                 };
 
                 let mut pipeline_desc = pso::GraphicsPipelineDesc::new(
@@ -223,11 +258,11 @@ impl<B: Backend> GfxRenderable<B> {
                     },
                 });
 
-                device_borrow.logical_device.create_graphics_pipeline(&pipeline_desc, None)
+                device_borrow.get_logical_device().borrow().create_graphics_pipeline(&pipeline_desc, None)
             };
 
-            device.borrow().logical_device.destroy_shader_module(vertex_module);
-            device.borrow().logical_device.destroy_shader_module(fragment_module);
+            device_borrow.get_logical_device().borrow().destroy_shader_module(vertex_module);
+            device_borrow.get_logical_device().borrow().destroy_shader_module(fragment_module);
             pipeline.expect("Failed to create pipeline")
         };
 

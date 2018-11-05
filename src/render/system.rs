@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use nalgebra::Vector3;
-use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxEncoder, GfxSwapchain,
+use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxSwapchain,
                  GfxSync, GfxRenderable, GfxVertex};
 
 pub struct RenderSystem {
@@ -9,13 +9,13 @@ pub struct RenderSystem {
     device : Option<Rc<RefCell<GfxDevice<GfxBackendType>>>>,
     sync : Option<Rc<RefCell<GfxSync<GfxBackendType>>>>,
     swapchain : Option<GfxSwapchain<GfxBackendType>>,
-    encoder : Option<GfxEncoder<GfxBackendType>>,
+    renderable : Option<GfxRenderable<GfxBackendType>>,
 }
 
 impl Drop for RenderSystem {
     fn drop(&mut self) {
-        self.encoder.take();
-        debug_assert!(self.encoder.is_none());
+        self.renderable.take();
+        debug_assert!(self.renderable.is_none());
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
         self.sync.take();
@@ -62,10 +62,6 @@ impl RenderSystem {
             indices,
             include_bytes!("../shaders/default.vert.spv").to_vec(),
             include_bytes!("../shaders/default.frag.spv").to_vec());
-
-        let encoder = Some(GfxEncoder::new(
-            Rc::clone(&device.clone().unwrap()),
-            renderable));
-        Self { backend, device, sync, swapchain, encoder }
+        Self { backend, device, sync, swapchain, renderable : Some(renderable) }
     }
 }
