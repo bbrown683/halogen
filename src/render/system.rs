@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxSwapchain};
 
 pub struct RenderSystem {
-    backend : GfxBackend,
+    _backend : GfxBackend,
     device : Option<Rc<RefCell<GfxDevice<GfxBackendType>>>>,
     swapchain : Option<GfxSwapchain<GfxBackendType>>,
 }
@@ -29,6 +29,6 @@ impl RenderSystem {
             Rc::clone(&device.clone().unwrap()),
             &mut backend.get_surface().unwrap(),
             2).ok();
-        Self { backend, device, swapchain }
+        Self { _backend: backend, device, swapchain }
     }
 }

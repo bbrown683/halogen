@@ -1,10 +1,9 @@
 use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
-use hal::{format, image};
-use hal::{Backbuffer, Backend, Device, FrameSync, PresentMode, Surface, SurfaceCapabilities,
+use hal::format;
+use hal::{Backend, Device, PresentMode, Surface, SurfaceCapabilities,
           SwapchainConfig};
-use hal::command::{ClearValue, ClearColor};
 use hal::pso::{Rect, Viewport};
 use crate::gfx::{GfxDevice};
 
@@ -66,14 +65,14 @@ impl<B: Backend> GfxSwapchain<B> {
             depth: 0.0..1.0,
         };
 
-        let (swapchain, backbuffer) = device
+        let (swapchain, _backbuffer) = device
             .borrow()
             .get_device()
             .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
 
         // Initialize our acquire semaphores.
-        let mut acquire_semaphores = iter::repeat_with(
+        let acquire_semaphores = iter::repeat_with(
             ||device.borrow().get_device().create_semaphore().expect("Failed to create semaphore."))
             .take(image_count as _)
             .collect();

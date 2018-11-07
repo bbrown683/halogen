@@ -1,10 +1,9 @@
-/// Module layout is inspired by UE4's VulkanRHI, but will be a very watered down variant.
-
 mod cmd_buffer;
 mod cmd_pool;
 mod device;
 mod framebuffer;
 mod pass;
+mod queue;
 mod swapchain;
 
 pub use self::cmd_buffer::GfxCmdBuffer;
@@ -30,7 +29,7 @@ pub struct GfxVertex {
 
 /// Manages the required components to initialize the gfx library.
 pub struct GfxBackend {
-    instance : back::Instance,
+    _instance : back::Instance,
     surface : <GfxBackendType as Backend>::Surface,
     adapters : Vec<Adapter<GfxBackendType>>,
 }
@@ -40,7 +39,7 @@ impl GfxBackend {
         let instance = back::Instance::create("halogen", 1);
         let surface = instance.create_surface(window);
         let adapters = instance.enumerate_adapters();
-        Self { instance, surface, adapters }
+        Self { _instance: instance, surface, adapters }
     }
 
     pub fn get_surface(&mut self) -> Option<&mut <GfxBackendType as Backend>::Surface> {
