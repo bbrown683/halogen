@@ -3,14 +3,16 @@ mod cmd_pool;
 mod device;
 mod framebuffer;
 mod pass;
-mod queue;
 mod swapchain;
+mod system;
 
 pub use self::cmd_buffer::GfxCmdBuffer;
 pub use self::cmd_pool::GfxCmdPool;
 pub use self::device::GfxDevice;
 pub use self::framebuffer::GfxFramebuffer;
 pub use self::pass::GfxRenderPass;
+pub use self::device::GfxQueue;
+pub use self::system::GfxRenderSystem;
 pub use self::swapchain::GfxSwapchain;
 
 use hal::{Adapter, Backend, Instance};
@@ -42,8 +44,8 @@ impl GfxBackend {
         Self { _instance: instance, surface, adapters }
     }
 
-    pub fn get_surface(&mut self) -> Option<&mut <GfxBackendType as Backend>::Surface> {
-        Some(&mut self.surface)
+    pub fn get_surface(&mut self) -> &mut <GfxBackendType as Backend>::Surface {
+        &mut self.surface
     }
 
     pub fn get_primary_adapter(&mut self) -> Adapter<GfxBackendType> {

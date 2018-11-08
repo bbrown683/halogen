@@ -2,10 +2,10 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 use hal::format;
-use hal::{Backend, Device, PresentMode, Surface, SurfaceCapabilities,
+use hal::{Backend, Capability, Device, PresentMode, Surface, SurfaceCapabilities,
           SwapchainConfig};
 use hal::pso::{Rect, Viewport};
-use crate::gfx::{GfxDevice};
+use crate::gfx::{GfxDevice, GfxQueue};
 
 /// Controls the presentation to a surface.
 pub struct GfxSwapchain<B: Backend> {
@@ -32,11 +32,12 @@ impl<B: Backend> Drop for GfxSwapchain<B>{
 impl<B: Backend> GfxSwapchain<B> {
     /// Creates a new swapchain with the given surface. This function will only need to be called once.
     /// Any events that break the existing swapchain `should` call `recreate`.
-    pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
+    pub fn new<C: Capability>(device : Rc<RefCell<GfxDevice<B>>>,
+               queue : &GfxQueue<B, C>,
                mut surface : &mut B::Surface,
                image_count : u32) -> Result<Self,String> {
         // Check to see if queue supports presentation.
-        if !surface.supports_queue_family(device.borrow().get_graphics_queue_family()) {
+        if !surface.supports_queue_family(device.borrow().get_queue_family(queue.get_queue_group().family())) {
             return Err("graphics queue does not support presenting to swapchain.".to_string());
         }
 

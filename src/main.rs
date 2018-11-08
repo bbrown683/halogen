@@ -18,9 +18,7 @@ use std::str::FromStr;
 use clap::{ Arg, App, crate_authors, crate_description, crate_name, crate_version };
 
 /// Internal module handling the gfx-hal library.
-pub mod gfx;
-/// Wrapper around gfx-hal featuring higher-level constructs.
-pub mod render;
+mod gfx;
 
 fn main() {
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
@@ -48,7 +46,7 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let _system = render::RenderSystem::new(&window);
+    let _system = gfx::GfxRenderSystem::new(&window);
 
     let mut running = true;
     while running {

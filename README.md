@@ -1,2 +1,2 @@
 # halogen
-Very early WIP rendering engine over gfx-hal.
+Very early WIP game engine over gfx-hal.
