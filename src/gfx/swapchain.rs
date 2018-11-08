@@ -1,15 +1,16 @@
 use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
-use hal::format;
+use hal::format::{self, Format};
 use hal::{Backend, Capability, Device, PresentMode, Surface, SurfaceCapabilities,
           SwapchainConfig};
 use hal::pso::{Rect, Viewport};
 use crate::gfx::{GfxDevice, GfxQueue};
 
 /// Controls the presentation to a surface.
-pub struct GfxSwapchain<B: Backend> {
+pub struct GfxSwapchain<B: Backend, C: Capability> {
     device : Rc<RefCell<GfxDevice<B>>>,
+    present_queue : Rc<RefCell<GfxQueue<B, C>>>,
     current_image : u32,
     caps : SurfaceCapabilities,
     swap_config : SwapchainConfig,
@@ -18,7 +19,7 @@ pub struct GfxSwapchain<B: Backend> {
     acquire_semaphores : Option<Vec<B::Semaphore>>
 }
 
-impl<B: Backend> Drop for GfxSwapchain<B>{
+impl<B: Backend, C: Capability> Drop for GfxSwapchain<B, C>{
     fn drop(&mut self) {
         for acquire_semaphore in self.acquire_semaphores.take().unwrap() {
             &self.device.borrow().get_device().destroy_semaphore(acquire_semaphore);
@@ -29,15 +30,15 @@ impl<B: Backend> Drop for GfxSwapchain<B>{
     }
 }
 
-impl<B: Backend> GfxSwapchain<B> {
+impl<B: Backend, C: Capability> GfxSwapchain<B, C> {
     /// Creates a new swapchain with the given surface. This function will only need to be called once.
     /// Any events that break the existing swapchain `should` call `recreate`.
-    pub fn new<C: Capability>(device : Rc<RefCell<GfxDevice<B>>>,
-               queue : &GfxQueue<B, C>,
+    pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
+               present_queue : Rc<RefCell<GfxQueue<B, C>>>,
                mut surface : &mut B::Surface,
                image_count : u32) -> Result<Self,String> {
         // Check to see if queue supports presentation.
-        if !surface.supports_queue_family(device.borrow().get_queue_family(queue.get_queue_group().family())) {
+        if !surface.supports_queue_family(device.borrow().get_queue_family(present_queue.borrow().get_queue_group().family())) {
             return Err("graphics queue does not support presenting to swapchain.".to_string());
         }
 
@@ -78,9 +79,21 @@ impl<B: Backend> GfxSwapchain<B> {
             .take(image_count as _)
             .collect();
 
-        Ok(Self { device, current_image: 0, caps, swap_config, viewport, swapchain: Some(swapchain),
+        Ok(Self { device, present_queue, current_image: 0, caps, swap_config, viewport, swapchain: Some(swapchain),
             acquire_semaphores: Some(acquire_semaphores) })
     }
+
+    /// Picks the color format for the swapchain.
+    fn select_color_format(self, formats : Vec<Format>, preferred : Option<Format>) -> Format { unimplemented!() }
+
+    /// Selects the present mode to use for the swapchain.
+    fn select_present_mode(self, present_modes : Vec<PresentMode>) -> PresentMode { unimplemented!()}
+
+    /// Presents the image to the screen, using the specified present queue. The present queue can be any queue
+    /// graphics, transfer, compute which supports present operations.
+    pub fn present(self) { unimplemented!() }
+
+    pub fn recreate(self, mut surface : &B::Surface) { unimplemented!() }
 
     pub fn get_current_image(&self) -> u32 {
         self.current_image.clone()

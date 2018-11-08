@@ -2,17 +2,19 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Compute, Graphics, Transfer};
 use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxQueue, GfxSwapchain};
+use crate::util::CapturedEvent;
 
-pub struct GfxRenderSystem {
-    _backend : GfxBackend,
+/// The highest level of the gfx module, the `GfxSystem` manages all render state.
+pub struct GfxSystem {
+    backend : GfxBackend,
     device : Option<Rc<RefCell<GfxDevice<GfxBackendType>>>>,
-    compute_queue : Option<GfxQueue<GfxBackendType, Compute>>,
-    graphics_queue : Option<GfxQueue<GfxBackendType, Graphics>>,
-    transfer_queue: Option<GfxQueue<GfxBackendType, Transfer>>,
-    swapchain : Option<GfxSwapchain<GfxBackendType>>,
+    compute_queue : Option<Rc<RefCell<GfxQueue<GfxBackendType, Compute>>>>,
+    graphics_queue : Option<Rc<RefCell<GfxQueue<GfxBackendType, Graphics>>>>,
+    transfer_queue: Option<Rc<RefCell<GfxQueue<GfxBackendType, Transfer>>>>,
+    swapchain : Option<GfxSwapchain<GfxBackendType, Graphics>>,
 }
 
-impl Drop for GfxRenderSystem {
+impl Drop for GfxSystem {
     fn drop(&mut self) {
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
@@ -27,23 +29,30 @@ impl Drop for GfxRenderSystem {
     }
 }
 
-impl GfxRenderSystem {
+impl CapturedEvent for GfxSystem {
+    fn on_resize(&mut self) {
+
+    }
+}
+
+impl GfxSystem {
     pub fn new(window : &winit::Window) -> Self {
         let mut backend = GfxBackend::new(window);
-        let (device,
-            compute_queue,
-            graphics_queue,
-            transfer_queue) = GfxDevice::new(
-            backend.get_primary_adapter()
-        );
+        let (device, compute_queue,
+            graphics_queue, transfer_queue)
+            = GfxDevice::new(backend.get_primary_adapter());
 
         // Create initial swapchain for rendering.
-        let swapchain = GfxSwapchain::new(
+        let swapchain = Some(GfxSwapchain::new(
             Rc::clone(&device.clone().unwrap()),
-            graphics_queue.as_ref().unwrap(),
+            Rc::clone(&graphics_queue.clone().unwrap()),
             backend.get_surface(),
-            2).ok();
-        Self { _backend: backend, device, swapchain, compute_queue,
+            2).expect("Failed to create swapchain."));
+        Self { backend, device, swapchain, compute_queue,
             graphics_queue, transfer_queue }
     }
+
+    pub fn begin_frame(&self) { unimplemented!() }
+
+    pub fn end_frame(&self) { unimplemented!() }
 }

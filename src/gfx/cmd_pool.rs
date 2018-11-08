@@ -1,7 +1,6 @@
 use std::cell::RefCell;
-use std::iter;
 use std::rc::Rc;
-use hal::{Backend, Capability, CommandPool, Compute, Device, Graphics, QueueFamily, Transfer};
+use hal::{Backend, Capability, CommandPool, Device};
 use hal::pool::{CommandPoolCreateFlags};
 use crate::gfx::{GfxDevice, GfxQueue};
 

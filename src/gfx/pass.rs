@@ -52,3 +52,5 @@ impl<B: Backend> GfxRenderPass<B> {
         Self { device, render_pass }
     }
 }
+
+pub struct RenderPassBuilder {}

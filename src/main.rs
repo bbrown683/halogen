@@ -19,6 +19,7 @@ use clap::{ Arg, App, crate_authors, crate_description, crate_name, crate_versio
 
 /// Internal module handling the gfx-hal library.
 mod gfx;
+mod util;
 
 fn main() {
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
@@ -46,7 +47,7 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let _system = gfx::GfxRenderSystem::new(&window);
+    let _system = gfx::GfxSystem::new(&window);
 
     let mut running = true;
     while running {

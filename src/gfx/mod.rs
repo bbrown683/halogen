@@ -3,6 +3,8 @@ mod cmd_pool;
 mod device;
 mod framebuffer;
 mod pass;
+mod pipeline;
+mod queue;
 mod swapchain;
 mod system;
 
@@ -10,9 +12,10 @@ pub use self::cmd_buffer::GfxCmdBuffer;
 pub use self::cmd_pool::GfxCmdPool;
 pub use self::device::GfxDevice;
 pub use self::framebuffer::GfxFramebuffer;
-pub use self::pass::GfxRenderPass;
-pub use self::device::GfxQueue;
-pub use self::system::GfxRenderSystem;
+pub use self::pass::{GfxRenderPass, RenderPassBuilder};
+pub use self::pipeline::{GfxPipeline, PipelineBuilder};
+pub use self::queue::GfxQueue;
+pub use self::system::GfxSystem;
 pub use self::swapchain::GfxSwapchain;
 
 use hal::{Adapter, Backend, Instance};
