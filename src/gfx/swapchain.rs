@@ -2,39 +2,41 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 use hal::format::{self, Format};
-use hal::{Backend, Capability, Device, PresentMode, Surface, SurfaceCapabilities,
+use hal::{Backend, Capability, Device as LogicalDevice, PresentMode, Surface, SurfaceCapabilities,
           SwapchainConfig};
 use hal::pso::{Rect, Viewport};
-use crate::gfx::{GfxDevice, GfxQueue};
+use crate::gfx::{Device, Queue};
 
 /// Controls the presentation to a surface.
-pub struct GfxSwapchain<B: Backend, C: Capability> {
-    device : Rc<RefCell<GfxDevice<B>>>,
-    present_queue : Rc<RefCell<GfxQueue<B, C>>>,
+pub struct Swapchain<B: Backend, C: Capability> {
+    device : Rc<RefCell<Device<B>>>,
+    present_queue : Rc<RefCell<Queue<B, C>>>,
     current_image : u32,
     caps : SurfaceCapabilities,
+    formats : Vec<Format>,
+    present_modes : Vec<PresentMode>,
     swap_config : SwapchainConfig,
     viewport : Viewport,
     swapchain : Option<B::Swapchain>,
     acquire_semaphores : Option<Vec<B::Semaphore>>
 }
 
-impl<B: Backend, C: Capability> Drop for GfxSwapchain<B, C>{
+impl<B: Backend, C: Capability> Drop for Swapchain<B, C>{
     fn drop(&mut self) {
         for acquire_semaphore in self.acquire_semaphores.take().unwrap() {
-            &self.device.borrow().get_device().destroy_semaphore(acquire_semaphore);
+            &self.device.borrow().get_logical_device().destroy_semaphore(acquire_semaphore);
         }
         debug_assert!(self.acquire_semaphores.is_none());
-        &self.device.borrow().get_device().destroy_swapchain(self.swapchain.take().unwrap());
+        &self.device.borrow().get_logical_device().destroy_swapchain(self.swapchain.take().unwrap());
         debug_assert!(self.swapchain.is_none());
     }
 }
 
-impl<B: Backend, C: Capability> GfxSwapchain<B, C> {
+impl<B: Backend, C: Capability> Swapchain<B, C> {
     /// Creates a new swapchain with the given surface. This function will only need to be called once.
     /// Any events that break the existing swapchain `should` call `recreate`.
-    pub fn new(device : Rc<RefCell<GfxDevice<B>>>,
-               present_queue : Rc<RefCell<GfxQueue<B, C>>>,
+    pub fn new(device : Rc<RefCell<Device<B>>>,
+               present_queue : Rc<RefCell<Queue<B, C>>>,
                mut surface : &mut B::Surface,
                image_count : u32) -> Result<Self,String> {
         // Check to see if queue supports presentation.
@@ -44,7 +46,7 @@ impl<B: Backend, C: Capability> GfxSwapchain<B, C> {
 
         // Grab surface capabilities, formats, and present modes.
         // TODO: find best format and present mode from iterator. we are using selected defaults currently.
-        let (caps, _formats, _present_modes) = surface.compatibility(device.borrow().get_physical_device());
+        let (caps, formats, present_modes) = surface.compatibility(device.borrow().get_physical_device());
         if !caps.image_count.contains(&image_count) {
             return Err("image_count parameter was not within valid boundaries.".to_string());
         }
@@ -53,7 +55,7 @@ impl<B: Backend, C: Capability> GfxSwapchain<B, C> {
         let swap_config = SwapchainConfig::new(
             extent.width,
             extent.height,
-            format::Format::Rgba8Unorm,
+            format::Format::Bgra8Srgb, // Most common supported format according to gpuinfo.
             image_count)
             .with_mode(PresentMode::Fifo); // Vulkan spec guarantee's this mode.
 
@@ -69,18 +71,18 @@ impl<B: Backend, C: Capability> GfxSwapchain<B, C> {
 
         let (swapchain, _backbuffer) = device
             .borrow()
-            .get_device()
+            .get_logical_device()
             .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
 
         // Initialize our acquire semaphores.
         let acquire_semaphores = iter::repeat_with(
-            ||device.borrow().get_device().create_semaphore().expect("Failed to create semaphore."))
+            ||device.borrow().get_logical_device().create_semaphore().expect("Failed to create semaphore."))
             .take(image_count as _)
             .collect();
 
-        Ok(Self { device, present_queue, current_image: 0, caps, swap_config, viewport, swapchain: Some(swapchain),
-            acquire_semaphores: Some(acquire_semaphores) })
+        Ok(Self { device, present_queue, current_image: 0, caps, formats: formats.unwrap(), present_modes, swap_config,
+            viewport, swapchain: Some(swapchain), acquire_semaphores: Some(acquire_semaphores) })
     }
 
     /// Picks the color format for the swapchain.
@@ -106,6 +108,10 @@ impl<B: Backend, C: Capability> GfxSwapchain<B, C> {
     pub fn get_swapchain_config(&self) -> SwapchainConfig {
         self.swap_config.clone()
     }
+
+    pub fn get_supported_formats(&self) -> Vec<Format> { self.formats.clone() }
+
+    pub fn get_supported_present_modes(&self) -> Vec<PresentMode> { self.present_modes.clone() }
 
     pub fn get_viewport(&self) -> Viewport {
         self.viewport.clone()

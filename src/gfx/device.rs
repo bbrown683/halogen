@@ -1,32 +1,32 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Adapter, Backend, Compute, Graphics, Transfer, Device, Features, Limits,
+use hal::{Adapter, Backend, Compute, Graphics, Transfer, Device as LogicalDevice, Features, Limits,
           MemoryProperties, PhysicalDevice, QueueFamily };
 use hal::queue::QueueFamilyId;
-use crate::gfx::{GfxQueue};
+use crate::gfx::{Queue};
 
 /// This module features the lowest level types needed by the other modules for creating resources,
 /// managing render state, etc.
-pub struct GfxDevice<B: Backend> {
+pub struct Device<B: Backend> {
     adapter : Adapter<B>,
     features : Features,
     memory_properties : MemoryProperties,
     limits : Limits,
-    device : B::Device,
+    logical_device: B::Device,
 }
 
-impl<B: Backend> Drop for GfxDevice<B> {
+impl<B: Backend> Drop for Device<B> {
     fn drop(&mut self) {
         // Wait for gpu operations to complete before destroying resources.
-        &self.device.wait_idle().unwrap();
+        &self.logical_device.wait_idle().unwrap();
     }
 }
 
-impl<B: Backend> GfxDevice<B> {
+impl<B: Backend> Device<B> {
     /// Creates a new rendering device for the specified adapter and surface.
     pub fn new(adapter : Adapter<B>)
-        -> (Option<Rc<RefCell<Self>>>, Option<Rc<RefCell<GfxQueue<B, Compute>>>>,
-            Option<Rc<RefCell<GfxQueue<B, Graphics>>>>, Option<Rc<RefCell<GfxQueue<B, Transfer>>>>) {
+        -> (Option<Rc<RefCell<Self>>>, Option<Rc<RefCell<Queue<B, Compute>>>>,
+            Option<Rc<RefCell<Queue<B, Graphics>>>>, Option<Rc<RefCell<Queue<B, Transfer>>>>) {
         let features = adapter.physical_device.features();
         let memory_properties = adapter.physical_device.memory_properties();
         let limits = adapter.physical_device.limits();
@@ -39,16 +39,16 @@ impl<B: Backend> GfxDevice<B> {
         }
 
         let (graphics_queue_id, compute_queue_id, transfer_queue_id) =
-            GfxDevice::<B>::get_queue_ids(&adapter.queue_families);
+            Device::<B>::get_queue_ids(&adapter.queue_families);
 
         let mut gpu = adapter.physical_device.open(queues.as_slice())
             .expect("Failed to create logical device.");
         let device = gpu.device;
-        let compute_group = Some(Rc::new(RefCell::new(GfxQueue::new(gpu.queues.take::<Compute>(compute_queue_id).unwrap()))));
-        let graphics_group = Some(Rc::new(RefCell::new(GfxQueue::new(gpu.queues.take::<Graphics>(graphics_queue_id).unwrap()))));
-        let transfer_group = Some(Rc::new(RefCell::new(GfxQueue::new(gpu.queues.take::<Transfer>(transfer_queue_id).unwrap()))));
+        let compute_group = Some(Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Compute>(compute_queue_id).unwrap()))));
+        let graphics_group = Some(Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Graphics>(graphics_queue_id).unwrap()))));
+        let transfer_group = Some(Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Transfer>(transfer_queue_id).unwrap()))));
 
-        (Some(Rc::new(RefCell::new(Self { adapter, features, memory_properties, limits, device}))),
+        (Some(Rc::new(RefCell::new(Self { adapter, features, memory_properties, limits, logical_device: device }))),
          compute_group, graphics_group, transfer_group)
     }
 
@@ -89,8 +89,8 @@ impl<B: Backend> GfxDevice<B> {
     }
 
     /// Returns a handle to the logical `Device`.
-    pub fn get_device(&self) -> &B::Device {
-        &self.device
+    pub fn get_logical_device(&self) -> &B::Device {
+        &self.logical_device
     }
 
     /// Returns a handle to the `PhysicalDevice`.

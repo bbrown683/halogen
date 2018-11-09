@@ -1,20 +1,19 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Backend};
-use hal::pso::{self};
-use crate::gfx::GfxDevice;
+use crate::gfx::{Device, Material};
 
-pub struct GfxPipeline<B: Backend> {
-    device : Rc<RefCell<GfxDevice<B>>>,
+pub struct Pipeline<B: Backend> {
+    device : Rc<RefCell<Device<B>>>,
     layout : B::PipelineLayout,
 }
 
-impl<B: Backend> Drop for GfxPipeline<B> {
+impl<B: Backend> Drop for Pipeline<B> {
     fn drop(&mut self) {
 
     }
 }
 
 pub struct PipelineBuilder {
-
+    material : Material,
 }

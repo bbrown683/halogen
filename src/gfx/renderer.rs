@@ -2,20 +2,20 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Compute, Graphics, Transfer};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxQueue, GfxSwapchain};
+use crate::gfx::{Backend, BackendType, Device, Queue, Swapchain};
 use crate::util::CapturedEvent;
 
 /// The highest level of the gfx module, the `GfxSystem` manages all render state.
-pub struct GfxSystem {
-    backend : GfxBackend,
-    device : Option<Rc<RefCell<GfxDevice<GfxBackendType>>>>,
-    compute_queue : Option<Rc<RefCell<GfxQueue<GfxBackendType, Compute>>>>,
-    graphics_queue : Option<Rc<RefCell<GfxQueue<GfxBackendType, Graphics>>>>,
-    transfer_queue: Option<Rc<RefCell<GfxQueue<GfxBackendType, Transfer>>>>,
-    swapchain : Option<GfxSwapchain<GfxBackendType, Graphics>>,
+pub struct Renderer {
+    backend : Backend,
+    device : Option<Rc<RefCell<Device<BackendType>>>>,
+    compute_queue : Option<Rc<RefCell<Queue<BackendType, Compute>>>>,
+    graphics_queue : Option<Rc<RefCell<Queue<BackendType, Graphics>>>>,
+    transfer_queue: Option<Rc<RefCell<Queue<BackendType, Transfer>>>>,
+    swapchain : Option<Swapchain<BackendType, Graphics>>,
 }
 
-impl Drop for GfxSystem {
+impl Drop for Renderer {
     fn drop(&mut self) {
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
@@ -30,7 +30,7 @@ impl Drop for GfxSystem {
     }
 }
 
-impl CapturedEvent for GfxSystem {
+impl CapturedEvent for Renderer {
     fn on_resize(&mut self, size : LogicalSize) {
         println!("Swapchain was resized to {:?}", &size);
     }
@@ -40,15 +40,15 @@ impl CapturedEvent for GfxSystem {
     }
 }
 
-impl GfxSystem {
+impl Renderer {
     pub fn new(window : &winit::Window) -> Self {
-        let mut backend = GfxBackend::new(window);
+        let mut backend = Backend::new(window);
         let (device, compute_queue,
             graphics_queue, transfer_queue)
-            = GfxDevice::new(backend.get_primary_adapter());
+            = Device::new(backend.get_primary_adapter());
 
         // Create initial swapchain for rendering.
-        let swapchain = Some(GfxSwapchain::new(
+        let swapchain = Some(Swapchain::new(
             Rc::clone(&device.clone().unwrap()),
             Rc::clone(&graphics_queue.clone().unwrap()),
             backend.get_surface(),

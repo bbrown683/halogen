@@ -1,13 +1,18 @@
 #![feature(extern_crate_item_prelude,range_contains)]
+extern crate alto;
 extern crate clap;
 extern crate directories;
+extern crate flate2;
 extern crate gfx_hal as hal;
 extern crate gfx_backend_vulkan as back;
 extern crate image;
 extern crate imgui;
+extern crate lewton;
 extern crate log;
 extern crate log4rs;
 extern crate nalgebra;
+extern crate ncollide3d;
+extern crate nphysics3d;
 extern crate num_cpus;
 extern crate rayon;
 extern crate rspirv;
@@ -23,7 +28,7 @@ mod gfx;
 mod util;
 
 use std::str::FromStr;
-use clap::{ Arg, App, crate_authors, crate_description, crate_name, crate_version };
+use clap::{Arg, App, crate_authors, crate_description, crate_name, crate_version};
 use crate::util::CapturedEvent;
 
 fn main() {
@@ -51,7 +56,7 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let mut system = gfx::GfxSystem::new(&window);
+    let mut system = gfx::Renderer::new(&window);
 
     let mut running = true;
     while running {

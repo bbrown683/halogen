@@ -1,27 +1,27 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Backend, Capability, CommandPool, Device};
+use hal::{Backend, Capability, CommandPool, Device as LogicalDevice};
 use hal::pool::{CommandPoolCreateFlags};
-use crate::gfx::{GfxDevice, GfxQueue};
+use crate::gfx::{Device, Queue};
 
-pub struct GfxCmdPool<B: Backend, C: Capability> {
-    device : Rc<RefCell<GfxDevice<B>>>,
+pub struct CmdPool<B: Backend, C: Capability> {
+    device : Rc<RefCell<Device<B>>>,
     cmd_pool : Option<CommandPool<B, C>>,
 }
 
 
-impl<B: Backend, C: Capability> Drop for GfxCmdPool<B, C> {
+impl<B: Backend, C: Capability> Drop for CmdPool<B, C> {
     fn drop(&mut self) {
-        &self.device.borrow().get_device().destroy_command_pool(self.cmd_pool.take().unwrap().into_raw());
+        &self.device.borrow().get_logical_device().destroy_command_pool(self.cmd_pool.take().unwrap().into_raw());
         debug_assert!(self.cmd_pool.is_none());
     }
 }
 
-impl<B: Backend, C: 'static> GfxCmdPool<B, C> where C: Capability {
-    pub fn new(device : Rc<RefCell<GfxDevice<B>>>, queue : Rc<RefCell<GfxQueue<B, C>>>) -> Self {
+impl<B: Backend, C: 'static> CmdPool<B, C> where C: Capability {
+    pub fn new(device : Rc<RefCell<Device<B>>>, queue : Rc<RefCell<Queue<B, C>>>) -> Self {
         let cmd_pool = Some(device
             .borrow()
-            .get_device()
+            .get_logical_device()
             .create_command_pool_typed(queue.borrow().get_queue_group(),
                                        CommandPoolCreateFlags::RESET_INDIVIDUAL,
                                        num_cpus::get())
