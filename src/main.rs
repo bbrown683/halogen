@@ -10,19 +10,23 @@ extern crate log4rs;
 extern crate nalgebra;
 extern crate num_cpus;
 extern crate rayon;
+extern crate rspirv;
 extern crate rusttype;
 extern crate specs;
+extern crate spirv_headers;
+extern crate tokio;
+extern crate toml;
 extern crate winit;
-
-use std::str::FromStr;
-use clap::{ Arg, App, crate_authors, crate_description, crate_name, crate_version };
 
 /// Internal module handling the gfx-hal library.
 mod gfx;
 mod util;
 
+use std::str::FromStr;
+use clap::{ Arg, App, crate_authors, crate_description, crate_name, crate_version };
+use crate::util::CapturedEvent;
+
 fn main() {
-    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
@@ -47,7 +51,7 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let _system = gfx::GfxSystem::new(&window);
+    let mut system = gfx::GfxSystem::new(&window);
 
     let mut running = true;
     while running {
@@ -57,8 +61,15 @@ fn main() {
                     event: winit::WindowEvent::CloseRequested,
                     ..
                 } => running = false,
+                winit::Event::WindowEvent {
+                    event: winit::WindowEvent::Resized(size),
+                    ..
+                } => system.on_resize(size),
                 _ => (),
             }
         });
+
+        &system.begin_frame();
+        &system.end_frame();
     }
 }

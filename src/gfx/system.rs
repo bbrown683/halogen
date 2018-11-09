@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Compute, Graphics, Transfer};
+use winit::dpi::{LogicalPosition, LogicalSize};
 use crate::gfx::{GfxBackend, GfxBackendType, GfxDevice, GfxQueue, GfxSwapchain};
 use crate::util::CapturedEvent;
 
@@ -30,8 +31,12 @@ impl Drop for GfxSystem {
 }
 
 impl CapturedEvent for GfxSystem {
-    fn on_resize(&mut self) {
+    fn on_resize(&mut self, size : LogicalSize) {
+        println!("Swapchain was resized to {:?}", &size);
+    }
 
+    fn on_cursor_move(&mut self, position : LogicalPosition) {
+        unimplemented!()
     }
 }
 
@@ -52,7 +57,7 @@ impl GfxSystem {
             graphics_queue, transfer_queue }
     }
 
-    pub fn begin_frame(&self) { unimplemented!() }
+    pub fn begin_frame(&self) { }
 
-    pub fn end_frame(&self) { unimplemented!() }
+    pub fn end_frame(&self) { }
 }
