@@ -34,4 +34,9 @@ impl<B: Backend, C: Capability> Queue<B, C> {
     pub fn get_queue_group(&self) -> &QueueGroup<B, C> {
         &self.queue_group
     }
+
+    /// Returns a mutable reference to the queue group for `Capability` operations.
+    pub fn get_queue_group_mut(&mut self) -> &mut QueueGroup<B, C> {
+        &mut self.queue_group
+    }
 }

@@ -22,7 +22,7 @@ impl<B: Backend, C: 'static> CmdPool<B, C> where C: Capability {
         let cmd_pool = Some(device
             .borrow()
             .get_logical_device()
-            .create_command_pool_typed(queue.borrow().get_queue_group(),
+            .create_command_pool_typed(queue.borrow_mut().get_queue_group_mut(),
                                        CommandPoolCreateFlags::RESET_INDIVIDUAL,
                                        num_cpus::get())
             .expect("Failed to create command pool"));

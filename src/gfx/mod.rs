@@ -12,7 +12,7 @@ mod renderer;
 pub use self::cmd_buffer::CmdBuffer;
 pub use self::cmd_pool::CmdPool;
 pub use self::device::Device;
-pub use self::framebuffer::GfxFramebuffer;
+pub use self::framebuffer::Framebuffer;
 pub use self::material::{Material, MaterialBuilder};
 pub use self::pass::{RenderPass, RenderPassBuilder};
 pub use self::pipeline::{Pipeline, PipelineBuilder};

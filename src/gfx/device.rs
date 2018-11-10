@@ -93,6 +93,11 @@ impl<B: Backend> Device<B> {
         &self.logical_device
     }
 
+    /// Returns a handle to the logical `Device`.
+    pub fn get_logical_device_mut(&mut self) -> &B::Device {
+        &self.logical_device
+    }
+
     /// Returns a handle to the `PhysicalDevice`.
     pub fn get_physical_device(&self) -> &B::PhysicalDevice {
         &self.adapter.physical_device

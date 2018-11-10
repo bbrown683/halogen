@@ -1,12 +1,14 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{format, image, pass};
+use hal::pass::Attachment;
 use hal::pso::PipelineStage;
 use hal::{Backend, Device as LogicalDevice};
 use crate::gfx::Device;
 
 pub struct RenderPass<B: Backend> {
     device : Rc<RefCell<Device<B>>>,
+    attachments : Vec<Attachment>,
     render_pass : Option<B::RenderPass>
 }
 
@@ -60,7 +62,7 @@ impl<B: Backend> RenderPassBuilder<B> {
             if self.depth_stencil {
                 // Add attachments for depth stencil.
                 attachments.push(pass::Attachment {
-                    format: Some(format::Format::Bgra8Srgb),
+                    format: Some(format::Format::D32FloatS8Uint),
                     samples: self.sample_count,
                     ops: pass::AttachmentOps::new(
                         pass::AttachmentLoadOp::Clear,
@@ -98,6 +100,6 @@ impl<B: Backend> RenderPassBuilder<B> {
             .get_logical_device()
             .create_render_pass(attachments.as_slice(), &[subpass], &[dependency])
             .expect("Can't create render pass"));
-        RenderPass { device: self.device, render_pass }
+        RenderPass { device: self.device, attachments, render_pass }
     }
 }

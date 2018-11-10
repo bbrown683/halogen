@@ -29,9 +29,36 @@ mod util;
 
 use std::str::FromStr;
 use clap::{Arg, App, crate_authors, crate_description, crate_name, crate_version};
+use log::LevelFilter;
+use log4rs::append::console::ConsoleAppender;
+use log4rs::append::file::FileAppender;
+use log4rs::encode::pattern::PatternEncoder;
+use log4rs::config::{Appender, Config, Logger, Root};
+use winit::WindowEvent;
 use crate::util::CapturedEvent;
 
 fn main() {
+
+    let stdout = ConsoleAppender::builder().build();
+
+    let requests = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{d} - {m}{n}")))
+        .build("log/requests.log")
+        .unwrap();
+
+    let config = Config::builder()
+        .appender(Appender::builder().build("stdout", Box::new(stdout)))
+        .appender(Appender::builder().build("requests", Box::new(requests)))
+        .logger(Logger::builder().build("app::backend::db", LevelFilter::Info))
+        .logger(Logger::builder()
+            .appender("requests")
+            .additive(false)
+            .build("app::requests", LevelFilter::Info))
+        .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
+        .unwrap();
+
+    let handle = log4rs::init_config(config).unwrap();
+
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
@@ -56,25 +83,30 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let mut system = gfx::Renderer::new(&window);
+    let mut renderer = gfx::Renderer::new(&window);
 
     let mut running = true;
     while running {
         events_loop.poll_events(|event| {
-            match event {
-                winit::Event::WindowEvent {
-                    event: winit::WindowEvent::CloseRequested,
-                    ..
-                } => running = false,
-                winit::Event::WindowEvent {
-                    event: winit::WindowEvent::Resized(size),
-                    ..
-                } => system.on_resize(size),
-                _ => (),
+            if let winit::Event::WindowEvent { event, .. } = event {
+                match event {
+                    WindowEvent::CloseRequested => running = false,
+                    WindowEvent::CursorMoved {
+                            device_id, position, modifiers
+                    } => (),
+                    WindowEvent::KeyboardInput {
+                        device_id, input
+                    } => renderer.on_keyboard_input(input),
+                    WindowEvent::MouseInput {
+                        device_id, state, button, modifiers
+                    } => renderer.on_mouse_input(button),
+                    WindowEvent::Resized(size) => renderer.on_resize(size),
+                    _ => (),
+                }
             }
         });
 
-        &system.begin_frame();
-        &system.end_frame();
+        //&renderer.begin_frame();
+        //&renderer.end_frame();
     }
 }

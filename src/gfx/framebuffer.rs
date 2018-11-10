@@ -1,23 +1,40 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Backend};
+use hal::{Backend, Device as DeviceTrait};
+use hal::pso::Viewport;
 use crate::gfx::{Device, RenderPass};
 
-pub struct GfxFramebuffer<B: Backend> {
-    _device : Rc<RefCell<Device<B>>>,
-    _render_pass : Rc<RefCell<RenderPass<B>>>,
-    _framebuffer : Option<B::Framebuffer>,
-    _frame_image : Option<B::Image>
+pub struct Framebuffer<B: Backend> {
+    device : Rc<RefCell<Device<B>>>,
+    render_pass : Rc<RefCell<RenderPass<B>>>,
+    framebuffer : Option<B::Framebuffer>,
+    frame_image : Option<B::Image>,
+    viewport : Viewport,
 }
 
-impl<B: Backend> Drop for GfxFramebuffer<B> {
+impl<B: Backend> Drop for Framebuffer<B> {
     fn drop(&mut self) {
 
     }
 }
 
-impl<B: Backend> GfxFramebuffer<B> {
+impl<B: Backend> Framebuffer<B> {
+    /*
     fn new(device : Rc<RefCell<Device<B>>>, render_pass : Rc<RefCell<RenderPass<B>>>) -> Self {
-        Self { _device: device, _render_pass: render_pass, _framebuffer: None, _frame_image: None }
+        let framebuffer = device
+            .borrow()
+            .get_logical_device()
+            .create_framebuffer(render_pass.borrow().get_render_pass().as_ref().unwrap(),
+                render_pass.borrow().get_attachments());
+        Self { device: device, render_pass: render_pass, framebuffer: None, frame_image: None }
     }
+    */
+}
+
+pub struct FramebufferBuilder {
+
+}
+
+impl FramebufferBuilder {
+
 }

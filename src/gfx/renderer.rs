@@ -32,11 +32,8 @@ impl Drop for Renderer {
 
 impl CapturedEvent for Renderer {
     fn on_resize(&mut self, size : LogicalSize) {
-        println!("Swapchain was resized to {:?}", &size);
-    }
-
-    fn on_cursor_move(&mut self, position : LogicalPosition) {
-        unimplemented!()
+        self.swapchain.as_mut().unwrap().recreate(self.backend.get_surface());
+        println!("Renderer has resized its resources to {:?}", size);
     }
 }
 
@@ -57,7 +54,11 @@ impl Renderer {
             graphics_queue, transfer_queue }
     }
 
-    pub fn begin_frame(&self) { }
+    pub fn begin_frame(&self) {
 
-    pub fn end_frame(&self) { }
+    }
+
+    pub fn end_frame(&mut self) {
+        &self.swapchain.as_mut().unwrap().present();
+    }
 }

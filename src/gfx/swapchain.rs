@@ -2,21 +2,19 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 use hal::format::{self, Format};
-use hal::{Backend, Capability, Device as LogicalDevice, PresentMode, Surface, SurfaceCapabilities,
-          SwapchainConfig};
-use hal::pso::{Rect, Viewport};
+use hal::{AcquireError, Backend, Capability, Device as LogicalDevice, PresentMode, Surface, SurfaceCapabilities,
+         Swapchain as GfxSwapchain, SwapchainConfig, SwapImageIndex};
 use crate::gfx::{Device, Queue};
 
 /// Controls the presentation to a surface.
 pub struct Swapchain<B: Backend, C: Capability> {
     device : Rc<RefCell<Device<B>>>,
     present_queue : Rc<RefCell<Queue<B, C>>>,
-    current_image : u32,
+    current_image : SwapImageIndex,
     caps : SurfaceCapabilities,
     formats : Vec<Format>,
     present_modes : Vec<PresentMode>,
     swap_config : SwapchainConfig,
-    viewport : Viewport,
     swapchain : Option<B::Swapchain>,
     acquire_semaphores : Option<Vec<B::Semaphore>>
 }
@@ -59,16 +57,6 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             image_count)
             .with_mode(PresentMode::Fifo); // Vulkan spec guarantee's this mode.
 
-        let viewport = Viewport {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: extent.width as _,
-                h: extent.height as _,
-            },
-            depth: 0.0..1.0,
-        };
-
         let (swapchain, _backbuffer) = device
             .borrow()
             .get_logical_device()
@@ -82,7 +70,7 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             .collect();
 
         Ok(Self { device, present_queue, current_image: 0, caps, formats: formats.unwrap(), present_modes, swap_config,
-            viewport, swapchain: Some(swapchain), acquire_semaphores: Some(acquire_semaphores) })
+            swapchain: Some(swapchain), acquire_semaphores: Some(acquire_semaphores) })
     }
 
     /// Picks the color format for the swapchain.
@@ -93,11 +81,25 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
 
     /// Presents the image to the screen, using the specified present queue. The present queue can be any queue
     /// graphics, transfer, compute which supports present operations.
-    pub fn present(self) { unimplemented!() }
+    pub fn present(&mut self) {
+        let present = self.swapchain
+            .as_ref()
+            .unwrap()
+            .present(&mut self.present_queue.borrow_mut().get_queue_group_mut().queues[0], self.current_image, &[])
+            .unwrap();
+    }
 
-    pub fn recreate(self, mut surface : &B::Surface) { unimplemented!() }
+    pub fn recreate(&mut self, mut surface : &mut B::Surface) {
+        &self.device.borrow().get_logical_device().wait_idle().unwrap();
+        let (swapchain, _backbuffer) = self.device
+            .borrow()
+            .get_logical_device()
+            .create_swapchain(&mut surface, self.swap_config.clone(), self.swapchain.take())
+            .expect("Failed to recreate swapchain.");
+        self.swapchain = Some(swapchain);
+    }
 
-    pub fn get_current_image(&self) -> u32 {
+    pub fn get_current_image(&self) -> SwapImageIndex {
         self.current_image.clone()
     }
 
@@ -112,10 +114,6 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
     pub fn get_supported_formats(&self) -> Vec<Format> { self.formats.clone() }
 
     pub fn get_supported_present_modes(&self) -> Vec<PresentMode> { self.present_modes.clone() }
-
-    pub fn get_viewport(&self) -> Viewport {
-        self.viewport.clone()
-    }
 
     pub fn get_swapchain(&self) -> &Option<B::Swapchain> {
        &self.swapchain
