@@ -53,8 +53,8 @@ impl Renderer {
             graphics_queue, transfer_queue }
     }
 
-    pub fn begin_frame(&self) {
-
+    pub fn begin_frame(&mut self) {
+        let next_image = &self.swapchain.as_mut().unwrap().get_next_image();
     }
 
     pub fn end_frame(&mut self) {

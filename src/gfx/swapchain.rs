@@ -76,11 +76,26 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             present_modes, swap_config, swapchain: Some(swapchain), backbuffer, acquire_semaphores: Some(acquire_semaphores) })
     }
 
-    /// Picks the color format for the swapchain.
-    fn select_color_format(self, formats : Vec<Format>, preferred : Option<Format>) -> Format { unimplemented!() }
-
-    /// Selects the present mode to use for the swapchain.
-    fn select_present_mode(self, present_modes : Vec<PresentMode>) -> PresentMode { unimplemented!()}
+    pub fn get_next_image(&mut self) -> SwapImageIndex {
+        let acquire_result = self.swapchain
+            .as_mut()
+            .unwrap()
+            .acquire_image(!0, FrameSync::Semaphore(self.acquire_semaphores
+                .as_ref()
+                .unwrap()
+                .get(self.current_image as usize)
+                .unwrap()));
+        if acquire_result.is_err() {
+            match acquire_result.unwrap_err() {
+                AcquireError::NotReady => println!("Swapchain does not have any images ready for presentation!"),
+                AcquireError::OutOfDate => println!("Swapchain is Out of Date!"),
+                AcquireError::SurfaceLost(lost) => println!("Surface was lost."),
+            }
+        } else {
+            self.current_image = acquire_result.unwrap()
+        }
+        self.current_image
+    }
 
     /// Presents the image to the screen, using the specified present queue. The present queue can be any queue
     /// graphics, transfer, compute which supports present operations.
@@ -118,6 +133,12 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
         self.swapchain = Some(swapchain);
         self.backbuffer = backbuffer;
     }
+
+    /// Picks the color format for the swapchain.
+    fn select_color_format(self, formats : Vec<Format>, preferred : Option<Format>) -> Format { unimplemented!() }
+
+    /// Selects the present mode to use for the swapchain.
+    fn select_present_mode(self, present_modes : Vec<PresentMode>) -> PresentMode { unimplemented!()}
 
     pub fn get_current_image(&self) -> SwapImageIndex {
         self.current_image.clone()
