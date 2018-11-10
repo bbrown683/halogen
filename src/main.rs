@@ -106,7 +106,7 @@ fn main() {
             }
         });
 
-        //&renderer.begin_frame();
-        //&renderer.end_frame();
+        &renderer.begin_frame();
+        &renderer.end_frame();
     }
 }

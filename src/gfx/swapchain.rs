@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 use hal::format::{self, Format};
-use hal::{AcquireError, Backend, Capability, Device as LogicalDevice, PresentMode, Surface, SurfaceCapabilities,
+use hal::{AcquireError, Backbuffer, Backend, Capability, Device as LogicalDevice, FrameSync, PresentMode, Surface, SurfaceCapabilities,
          Swapchain as GfxSwapchain, SwapchainConfig, SwapImageIndex};
 use crate::gfx::{Device, Queue};
 
@@ -11,11 +11,13 @@ pub struct Swapchain<B: Backend, C: Capability> {
     device : Rc<RefCell<Device<B>>>,
     present_queue : Rc<RefCell<Queue<B, C>>>,
     current_image : SwapImageIndex,
+    image_count : u32,
     caps : SurfaceCapabilities,
     formats : Vec<Format>,
     present_modes : Vec<PresentMode>,
     swap_config : SwapchainConfig,
     swapchain : Option<B::Swapchain>,
+    backbuffer : Backbuffer<B>,
     acquire_semaphores : Option<Vec<B::Semaphore>>
 }
 
@@ -27,6 +29,7 @@ impl<B: Backend, C: Capability> Drop for Swapchain<B, C>{
         debug_assert!(self.acquire_semaphores.is_none());
         &self.device.borrow().get_logical_device().destroy_swapchain(self.swapchain.take().unwrap());
         debug_assert!(self.swapchain.is_none());
+        println!("Dropped Swapchain.")
     }
 }
 
@@ -57,7 +60,7 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             image_count)
             .with_mode(PresentMode::Fifo); // Vulkan spec guarantee's this mode.
 
-        let (swapchain, _backbuffer) = device
+        let (swapchain, backbuffer) = device
             .borrow()
             .get_logical_device()
             .create_swapchain(&mut surface, swap_config.clone(), None)
@@ -69,8 +72,8 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             .take(image_count as _)
             .collect();
 
-        Ok(Self { device, present_queue, current_image: 0, caps, formats: formats.unwrap(), present_modes, swap_config,
-            swapchain: Some(swapchain), acquire_semaphores: Some(acquire_semaphores) })
+        Ok(Self { device, present_queue, current_image: 0, image_count, caps, formats: formats.unwrap(),
+            present_modes, swap_config, swapchain: Some(swapchain), backbuffer, acquire_semaphores: Some(acquire_semaphores) })
     }
 
     /// Picks the color format for the swapchain.
@@ -91,12 +94,29 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
 
     pub fn recreate(&mut self, mut surface : &mut B::Surface) {
         &self.device.borrow().get_logical_device().wait_idle().unwrap();
-        let (swapchain, _backbuffer) = self.device
+
+        let (caps, formats, present_modes) = surface.compatibility(self.device.borrow().get_physical_device());
+        let extent = caps.current_extent.unwrap().to_extent();
+        let swap_config = SwapchainConfig::new(
+            extent.width,
+            extent.height,
+            format::Format::Bgra8Srgb, // Most common supported format according to gpuinfo.
+            self.image_count)
+            .with_mode(PresentMode::Fifo); // Vulkan spec guarantee's this mode.
+
+        let (swapchain, backbuffer) = self.device
             .borrow()
             .get_logical_device()
-            .create_swapchain(&mut surface, self.swap_config.clone(), self.swapchain.take())
+            .create_swapchain(&mut surface, swap_config.clone(), self.swapchain.take())
             .expect("Failed to recreate swapchain.");
+
+        // Update our parameters to their new values.
+        self.caps = caps;
+        self.formats = formats.unwrap();
+        self.present_modes = present_modes;
+        self.swap_config = swap_config;
         self.swapchain = Some(swapchain);
+        self.backbuffer = backbuffer;
     }
 
     pub fn get_current_image(&self) -> SwapImageIndex {

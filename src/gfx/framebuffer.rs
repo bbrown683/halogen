@@ -14,7 +14,7 @@ pub struct Framebuffer<B: Backend> {
 
 impl<B: Backend> Drop for Framebuffer<B> {
     fn drop(&mut self) {
-
+        println!("Dropped Framebuffer")
     }
 }
 

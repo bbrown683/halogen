@@ -10,9 +10,9 @@ alto = "3.0.3"
 clap = "2.32.0"
 directories = "1.0.2"
 flate2 = "1.0.4"
-gfx-hal = { git = "https://github.com/bbrown683/gfx", branch = "transfer_queue" }
-gfx-backend-dx12 = { git = "https://github.com/bbrown683/gfx", branch = "transfer_queue" }
-gfx-backend-vulkan = { git = "https://github.com/bbrown683/gfx", branch = "transfer_queue" }
+gfx-hal = { git = "https://github.com/bbrown683/gfx", branch = "swapchain_cleanup" }
+gfx-backend-dx12 = { git = "https://github.com/bbrown683/gfx", branch = "swapchain_cleanup" }
+gfx-backend-vulkan = { git = "https://github.com/bbrown683/gfx", branch = "swapchain_cleanup" }
 gltf = "0.11.2"
 image = "0.20.0"
 imgui = "0.0.21"

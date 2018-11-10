@@ -33,7 +33,6 @@ impl Drop for Renderer {
 impl CapturedEvent for Renderer {
     fn on_resize(&mut self, size : LogicalSize) {
         self.swapchain.as_mut().unwrap().recreate(self.backend.get_surface());
-        println!("Renderer has resized its resources to {:?}", size);
     }
 }
 

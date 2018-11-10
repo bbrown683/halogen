@@ -19,6 +19,7 @@ impl<B: Backend> Drop for Device<B> {
     fn drop(&mut self) {
         // Wait for gpu operations to complete before destroying resources.
         &self.logical_device.wait_idle().unwrap();
+        println!("Dropped Device")
     }
 }
 
@@ -70,10 +71,10 @@ impl<B: Backend> Device<B> {
                 compute_queue_id = QueueFamilyId(i);
             }
             // Get individual transfer queue if possible.
-            if queue_family.supports_transfer() && !queue_family.supports_graphics() &&
-                !queue_family.supports_compute() {
-                transfer_queue_id = QueueFamilyId(i);
-            }
+//            if queue_family.supports_transfer() && !queue_family.supports_graphics() &&
+//                !queue_family.supports_compute() {
+//                transfer_queue_id = QueueFamilyId(i);
+//            }
         }
 
         // This situation can arise when there may be a single queue.
@@ -84,7 +85,7 @@ impl<B: Backend> Device<B> {
         if transfer_queue_id.0 == usize::max_value() {
             transfer_queue_id = compute_queue_id;
         }
-
+        transfer_queue_id = QueueFamilyId(2);
         (graphics_queue_id, compute_queue_id, transfer_queue_id)
     }
 
