@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::iter;
 use std::rc::Rc;
 use hal::{Compute, Graphics, Transfer};
 use winit::dpi::{LogicalPosition, LogicalSize};
@@ -56,8 +57,8 @@ impl<'a> Renderer<'a> {
         let mut backend = Backend::new(window);
 
         // Create device and all associated queues.
-        let (device, mut compute_queue,
-            mut graphics_queue, mut transfer_queue)
+        let (device, compute_queue,
+            mut graphics_queue, transfer_queue)
             = Device::new(backend.get_primary_adapter());
 
         // Create initial swapchain for rendering.
@@ -72,29 +73,24 @@ impl<'a> Renderer<'a> {
         let compute_pool = Some(Rc::new(RefCell::new(CmdPool::new(
             Rc::clone(&device.clone().unwrap()),
             &mut compute_queue.as_ref().unwrap().borrow_mut()))));
-        let graphics_pool = Some(Rc::new(RefCell::new(CmdPool::new(
+        let graphics_pool = CmdPool::new(
             Rc::clone(&device.clone().unwrap()),
-            &mut graphics_queue.as_ref().unwrap().borrow_mut()))));
+            &mut graphics_queue.as_ref().unwrap().borrow_mut());
         let transfer_pool = Some(Rc::new(RefCell::new(CmdPool::new(
             Rc::clone(&device.clone().unwrap()),
             &mut transfer_queue.as_ref().unwrap().borrow_mut()))));
 
-        let graphics_buffers = Vec::<CmdBuffer<'a, _, _>>::new();
+        // Allocate buffers for each pool.
+        let graphics_buffers = Vec::<CmdBuffer<_, _>>::new();
+//        for i in 0..2 {
+//            graphics_buffers.push(graphics_pool.get_cmd_buffer());
+//        }
 
         info!("Renderer has been initialized.");
-        Self { backend, device, swapchain, compute_queue, compute_pool, graphics_queue, graphics_pool,
-            graphics_buffers, transfer_queue, transfer_pool }
+        Self { backend, device, swapchain, compute_queue, compute_pool, graphics_queue,
+            graphics_pool: Some(Rc::new(RefCell::new(graphics_pool))), graphics_buffers,
+            transfer_queue, transfer_pool }
     }
-
-    /*
-    pub fn build_command_buffers(&mut self) {
-        let mut graphics_pool = self.graphics_pool.as_mut().unwrap().borrow_mut();
-        self.graphics_buffers.push(CmdBuffer::new(
-            Rc::clone(&self.device.clone().unwrap()),
-            &mut graphics_pool
-        ));
-    }
-    */
 
     pub fn begin_frame(&mut self) {
         let next_image = &self.swapchain.as_mut().unwrap().get_next_image();

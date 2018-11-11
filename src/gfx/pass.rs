@@ -15,6 +15,7 @@ pub struct RenderPass<B: Backend> {
 impl<B: Backend> Drop for RenderPass<B> {
     fn drop(&mut self) {
         &self.device.borrow().get_logical_device().destroy_render_pass(self.render_pass.take().unwrap());
+        debug_assert!(self.render_pass.is_none());
     }
 }
 

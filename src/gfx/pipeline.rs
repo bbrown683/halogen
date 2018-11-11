@@ -1,3 +1,4 @@
+/*
 use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Backend};
@@ -17,3 +18,4 @@ impl<B: Backend> Drop for Pipeline<B> {
 pub struct PipelineBuilder {
     material : Material,
 }
+*/

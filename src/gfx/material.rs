@@ -1,3 +1,4 @@
+/*
 use rspirv::mr::{Module, ModuleHeader};
 
 /// Represents the properties of a set of shaders. Namely the inputs, outputs, and the steps between them
@@ -31,3 +32,4 @@ impl MaterialBuilder {
         unimplemented!()
     }
 }
+*/

@@ -1,21 +1,19 @@
-mod cmd_buffer;
-mod cmd_pool;
+mod cmd;
 mod device;
 mod framebuffer;
 mod material;
 mod pass;
-mod pipeline;
+//mod pipeline;
 mod queue;
 mod swapchain;
 mod renderer;
 
-pub use self::cmd_buffer::CmdBuffer;
-pub use self::cmd_pool::CmdPool;
+pub use self::cmd::{CmdBuffer, CmdPool};
 pub use self::device::Device;
 pub use self::framebuffer::Framebuffer;
-pub use self::material::{Material, MaterialBuilder};
+//pub use self::material::{Material, MaterialBuilder};
 pub use self::pass::{RenderPass, RenderPassBuilder};
-pub use self::pipeline::{Pipeline, PipelineBuilder};
+//pub use self::pipeline::{Pipeline, PipelineBuilder};
 pub use self::queue::Queue;
 pub use self::renderer::Renderer;
 pub use self::swapchain::Swapchain;
