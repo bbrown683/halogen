@@ -2,23 +2,24 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Compute, Graphics, Transfer};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use crate::gfx::{Backend, BackendType, CmdPool, Device, Queue, Swapchain};
+use crate::gfx::{Backend, BackendType, CmdBuffer, CmdPool, Device, Queue, Swapchain};
 use crate::util::CapturedEvent;
 
 /// The highest level of the gfx module, the `GfxSystem` manages all render state.
-pub struct Renderer {
+pub struct Renderer<'a> {
     backend : Backend,
     device : Option<Rc<RefCell<Device<BackendType>>>>,
     compute_queue : Option<Rc<RefCell<Queue<BackendType, Compute>>>>,
     compute_pool : Option<Rc<RefCell<CmdPool<BackendType, Compute>>>>,
     graphics_queue : Option<Rc<RefCell<Queue<BackendType, Graphics>>>>,
     graphics_pool : Option<Rc<RefCell<CmdPool<BackendType, Graphics>>>>,
+    graphics_buffers : Vec<CmdBuffer<'a, BackendType, Graphics>>,
     transfer_queue: Option<Rc<RefCell<Queue<BackendType, Transfer>>>>,
     transfer_pool : Option<Rc<RefCell<CmdPool<BackendType, Transfer>>>>,
     swapchain : Option<Swapchain<BackendType, Graphics>>,
 }
 
-impl Drop for Renderer {
+impl<'a> Drop for Renderer<'a> {
     fn drop(&mut self) {
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
@@ -36,18 +37,21 @@ impl Drop for Renderer {
         debug_assert!(self.transfer_queue.is_none());
         self.device.take();
         debug_assert!(self.device.is_none());
+        info!("Dropped Renderer.")
     }
 }
 
-impl CapturedEvent for Renderer {
+impl<'a> CapturedEvent for Renderer<'a> {
     fn on_resize(&mut self, size : LogicalSize) {
         self.swapchain.as_mut().unwrap().recreate(self.backend.get_surface());
     }
 }
 
-impl Renderer {
+impl<'a> Renderer<'a> {
     /// Initializes the renderer for the specified window.
     pub fn new(window : &winit::Window) -> Self {
+        info!("Initializing Renderer.");
+
         // Initialize backend.
         let mut backend = Backend::new(window);
 
@@ -55,6 +59,13 @@ impl Renderer {
         let (device, mut compute_queue,
             mut graphics_queue, mut transfer_queue)
             = Device::new(backend.get_primary_adapter());
+
+        // Create initial swapchain for rendering.
+        let swapchain = Some(Swapchain::new(
+            Rc::clone(&device.clone().unwrap()),
+            Rc::clone(&graphics_queue.clone().unwrap()),
+            backend.get_surface(),
+            2).expect("Failed to create swapchain."));
 
         // Create pools for each queue.
         // TODO: Should this be a vector of pools for each frame to synchronize resources?
@@ -68,16 +79,22 @@ impl Renderer {
             Rc::clone(&device.clone().unwrap()),
             &mut transfer_queue.as_ref().unwrap().borrow_mut()))));
 
-        // Create initial swapchain for rendering.
-        let swapchain = Some(Swapchain::new(
-            Rc::clone(&device.clone().unwrap()),
-            Rc::clone(&graphics_queue.clone().unwrap()),
-            backend.get_surface(),
-            2).expect("Failed to create swapchain."));
+        let graphics_buffers = Vec::<CmdBuffer<'a, _, _>>::new();
 
-        Self { backend, device, swapchain, compute_queue, compute_pool,
-            graphics_queue, graphics_pool, transfer_queue, transfer_pool }
+        info!("Renderer has been initialized.");
+        Self { backend, device, swapchain, compute_queue, compute_pool, graphics_queue, graphics_pool,
+            graphics_buffers, transfer_queue, transfer_pool }
     }
+
+    /*
+    pub fn build_command_buffers(&mut self) {
+        let mut graphics_pool = self.graphics_pool.as_mut().unwrap().borrow_mut();
+        self.graphics_buffers.push(CmdBuffer::new(
+            Rc::clone(&self.device.clone().unwrap()),
+            &mut graphics_pool
+        ));
+    }
+    */
 
     pub fn begin_frame(&mut self) {
         let next_image = &self.swapchain.as_mut().unwrap().get_next_image();

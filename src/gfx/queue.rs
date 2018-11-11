@@ -12,6 +12,7 @@ impl<B: Backend, C: Capability> Drop for Queue<B, C> {
         for queue in &self.queue_group.queues {
             queue.wait_idle().expect("Failed to wait on queue to become idle.");
         }
+        info!("Dropped Queue")
     }
 }
 

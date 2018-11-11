@@ -8,6 +8,7 @@ extern crate gfx_backend_vulkan as back;
 extern crate image;
 extern crate imgui;
 extern crate lewton;
+#[macro_use]
 extern crate log;
 extern crate log4rs;
 extern crate nalgebra;
@@ -32,7 +33,7 @@ use std::path;
 use std::str::FromStr;
 use clap::{Arg, App, crate_authors, crate_description, crate_name, crate_version};
 use directories::UserDirs;
-use log::LevelFilter;
+use log::{LevelFilter};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::append::file::FileAppender;
 use log4rs::encode::pattern::PatternEncoder;

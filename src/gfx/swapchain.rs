@@ -29,7 +29,7 @@ impl<B: Backend, C: Capability> Drop for Swapchain<B, C>{
         debug_assert!(self.acquire_semaphores.is_none());
         &self.device.borrow().get_logical_device().destroy_swapchain(self.swapchain.take().unwrap());
         debug_assert!(self.swapchain.is_none());
-        println!("Dropped Swapchain.")
+        info!("Dropped Swapchain.")
     }
 }
 

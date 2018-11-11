@@ -15,8 +15,12 @@ pub struct Framebuffer<B: Backend> {
 
 impl<B: Backend> Drop for Framebuffer<B> {
     fn drop(&mut self) {
-
-        println!("Dropped Framebuffer")
+        for image_view in self.image_views.take().unwrap() {
+            self.device.borrow().get_logical_device().destroy_image_view(image_view)
+        }
+        &self.device.borrow().get_logical_device().destroy_framebuffer(self.framebuffer.take().unwrap());
+        debug_assert!(self.framebuffer.is_none());
+        info!("Dropped Framebuffer")
     }
 }
 

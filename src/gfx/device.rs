@@ -19,7 +19,7 @@ impl<B: Backend> Drop for Device<B> {
     fn drop(&mut self) {
         // Wait for gpu operations to complete before destroying resources.
         &self.logical_device.wait_idle().unwrap();
-        println!("Dropped Device")
+        info!("Dropped Device")
     }
 }
 
