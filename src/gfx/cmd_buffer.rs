@@ -23,12 +23,12 @@ impl<'a, B: Backend, C: 'static> CmdBuffer<'a, B, C> where C: Capability {
         Self { device, cmd_buffer, fence }
     }
 
-    pub fn begin() { unimplemented!() }
+    pub fn begin_pass() { unimplemented!() }
 
-    pub fn end() { unimplemented!() }
+    pub fn end_pass() { unimplemented!() }
 
-    pub fn get_fence(&self) -> Option<&B::Fence> {
-        self.fence.as_ref()
+    pub fn get_fence(&self) -> &Option<B::Fence> {
+        &self.fence
     }
 
     /*

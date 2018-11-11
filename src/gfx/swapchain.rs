@@ -134,29 +134,43 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
         self.backbuffer = backbuffer;
     }
 
+    /// Returns the current image index which the swapchain is referring to.
+    pub fn get_current_image(self) -> SwapImageIndex {
+        self.current_image
+    }
+
+    /// Returns the capabilities provided by the surface which initialized this Swapchain.
+    pub fn get_surface_capabilities(self) -> SurfaceCapabilities {
+        self.caps.clone()
+    }
+
+    /// Returns the configuration which was selected for the current Swapchain. This provides the
+    /// format, extent, present mode, and number of images for the Swapchain.
+    pub fn get_swapchain_config(self) -> SwapchainConfig {
+        self.swap_config.clone()
+    }
+
+    /// Returns all formats supported by the surface initialized with the Swapchain.
+    pub fn get_supported_formats(self) -> Vec<Format> { self.formats.clone() }
+
+    /// Returns all present modes supported by the surface initialized with the Swapchain.
+    pub fn get_supported_present_modes(self) -> Vec<PresentMode> { self.present_modes.clone() }
+
+    /// Returns a reference to the Swapchain.
+    pub fn get_swapchain(&self) -> &Option<B::Swapchain> {
+        &self.swapchain
+    }
+
+    /// Returns the backbuffer associated with this Swapchain, allowing access to the images.
+    pub fn get_backbuffer(&self) -> &Backbuffer<B> {
+        &self.backbuffer
+    }
+
     /// Picks the color format for the swapchain.
     fn select_color_format(self, formats : Vec<Format>, preferred : Option<Format>) -> Format { unimplemented!() }
 
     /// Selects the present mode to use for the swapchain.
     fn select_present_mode(self, present_modes : Vec<PresentMode>) -> PresentMode { unimplemented!()}
 
-    pub fn get_current_image(&self) -> SwapImageIndex {
-        self.current_image.clone()
-    }
 
-    pub fn get_surface_capabilities(&self) -> SurfaceCapabilities {
-        self.caps.clone()
-    }
-
-    pub fn get_swapchain_config(&self) -> SwapchainConfig {
-        self.swap_config.clone()
-    }
-
-    pub fn get_supported_formats(&self) -> Vec<Format> { self.formats.clone() }
-
-    pub fn get_supported_present_modes(&self) -> Vec<PresentMode> { self.present_modes.clone() }
-
-    pub fn get_swapchain(&self) -> &Option<B::Swapchain> {
-       &self.swapchain
-    }
 }

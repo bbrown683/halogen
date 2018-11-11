@@ -22,6 +22,10 @@ impl<B: Backend> RenderPass<B> {
     pub fn get_render_pass(&self) -> &Option<B::RenderPass> {
         &self.render_pass
     }
+
+    pub fn get_attachments(self) -> Vec<Attachment> {
+        self.attachments.clone()
+    }
 }
 
 pub struct RenderPassBuilder<B: Backend> {

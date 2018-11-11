@@ -75,6 +75,7 @@ impl<B: Backend> Device<B> {
 //                !queue_family.supports_compute() {
 //                transfer_queue_id = QueueFamilyId(i);
 //            }
+            transfer_queue_id = QueueFamilyId(2);
         }
 
         // This situation can arise when there may be a single queue.
@@ -85,7 +86,6 @@ impl<B: Backend> Device<B> {
         if transfer_queue_id.0 == usize::max_value() {
             transfer_queue_id = compute_queue_id;
         }
-        transfer_queue_id = QueueFamilyId(2);
         (graphics_queue_id, compute_queue_id, transfer_queue_id)
     }
 
@@ -105,17 +105,17 @@ impl<B: Backend> Device<B> {
     }
 
     /// Returns the features for the current `PhysicalDevice`.
-    pub fn get_features(&self) -> Features {
+    pub fn get_features(self) -> Features {
         self.features.clone()
     }
 
     /// Returns the memory properties for the current `PhysicalDevice`.
-    pub fn get_memory_properties(&self) -> MemoryProperties {
+    pub fn get_memory_properties(self) -> MemoryProperties {
         self.memory_properties.clone()
     }
 
     /// Returns the limits for the current `PhysicalDevice`.
-    pub fn get_limits(&self) -> Limits {
+    pub fn get_limits(self) -> Limits {
         self.limits.clone()
     }
 

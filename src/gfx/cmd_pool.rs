@@ -18,11 +18,11 @@ impl<B: Backend, C: Capability> Drop for CmdPool<B, C> {
 }
 
 impl<B: Backend, C: 'static> CmdPool<B, C> where C: Capability {
-    pub fn new(device : Rc<RefCell<Device<B>>>, queue : Rc<RefCell<Queue<B, C>>>) -> Self {
+    pub fn new(device : Rc<RefCell<Device<B>>>, queue : &mut Queue<B, C>) -> Self {
         let cmd_pool = Some(device
             .borrow()
             .get_logical_device()
-            .create_command_pool_typed(queue.borrow_mut().get_queue_group_mut(),
+            .create_command_pool_typed(queue.get_queue_group_mut(),
                                        CommandPoolCreateFlags::RESET_INDIVIDUAL,
                                        num_cpus::get())
             .expect("Failed to create command pool"));

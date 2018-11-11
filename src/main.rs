@@ -27,8 +27,11 @@ extern crate winit;
 mod gfx;
 mod util;
 
+use std::fs;
+use std::path;
 use std::str::FromStr;
 use clap::{Arg, App, crate_authors, crate_description, crate_name, crate_version};
+use directories::UserDirs;
 use log::LevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::append::file::FileAppender;
@@ -38,23 +41,29 @@ use winit::WindowEvent;
 use crate::util::CapturedEvent;
 
 fn main() {
+    // Set paths.
+    let user_dirs = UserDirs::new();
+    let halogen_path = user_dirs.as_ref().unwrap().document_dir().unwrap().join("Halogen");
+    let log_path = halogen_path.join("runtime.log");
+
+    if !halogen_path.exists() {
+        fs::create_dir(halogen_path).expect("Failed to create path.")
+    }
 
     let stdout = ConsoleAppender::builder().build();
-
-    let requests = FileAppender::builder()
+    let file = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {m}{n}")))
-        .build("log/requests.log")
+        .build(log_path)
         .unwrap();
 
     let config = Config::builder()
-        .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .appender(Appender::builder().build("requests", Box::new(requests)))
-        .logger(Logger::builder().build("app::backend::db", LevelFilter::Info))
+        .appender(Appender::builder().build("stdout_appender", Box::new(stdout)))
+        .appender(Appender::builder().build("file_appender", Box::new(file)))
         .logger(Logger::builder()
-            .appender("requests")
+            .appender("file_appender")
             .additive(false)
-            .build("app::requests", LevelFilter::Info))
-        .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
+            .build("all_components", LevelFilter::Debug))
+        .build(Root::builder().appender("stdout_appender").build(LevelFilter::Debug))
         .unwrap();
 
     let handle = log4rs::init_config(config).unwrap();
@@ -79,7 +88,7 @@ fn main() {
     let mut events_loop = winit::EventsLoop::new();
     let window = winit::WindowBuilder::new()
         .with_dimensions(winit::dpi::LogicalSize::new(width as _, height as _))
-        .with_title("halogen".to_string())
+        .with_title("Halogen".to_string())
         .build(&events_loop)
         .expect("Failed to create window.");
 
@@ -106,7 +115,7 @@ fn main() {
             }
         });
 
-        &renderer.begin_frame();
-        &renderer.end_frame();
+//        &renderer.begin_frame();
+//        &renderer.end_frame();
     }
 }
