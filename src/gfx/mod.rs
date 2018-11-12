@@ -47,7 +47,11 @@ impl Backend {
         Self { _instance: instance, surface, adapters }
     }
 
-    pub fn get_surface(&mut self) -> &mut <BackendType as BackendTrait>::Surface {
+    pub fn get_surface(&self) -> &<BackendType as BackendTrait>::Surface {
+        &self.surface
+    }
+
+    pub fn get_surface_mut(&mut self) -> &mut <BackendType as BackendTrait>::Surface {
         &mut self.surface
     }
 

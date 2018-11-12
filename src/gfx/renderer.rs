@@ -7,21 +7,23 @@ use crate::gfx::{Backend, BackendType, CmdBuffer, CmdPool, Device, Queue, Swapch
 use crate::util::CapturedEvent;
 
 /// The highest level of the gfx module, the `GfxSystem` manages all render state.
-pub struct Renderer<'a> {
+pub struct Renderer {
     backend : Backend,
     device : Option<Rc<RefCell<Device<BackendType>>>>,
     compute_queue : Option<Rc<RefCell<Queue<BackendType, Compute>>>>,
     compute_pool : Option<Rc<RefCell<CmdPool<BackendType, Compute>>>>,
     graphics_queue : Option<Rc<RefCell<Queue<BackendType, Graphics>>>>,
     graphics_pool : Option<Rc<RefCell<CmdPool<BackendType, Graphics>>>>,
-    graphics_buffers : Vec<CmdBuffer<'a, BackendType, Graphics>>,
     transfer_queue: Option<Rc<RefCell<Queue<BackendType, Transfer>>>>,
     transfer_pool : Option<Rc<RefCell<CmdPool<BackendType, Transfer>>>>,
+    present_queue : Option<Rc<RefCell<Queue<BackendType, Graphics>>>>,
     swapchain : Option<Swapchain<BackendType, Graphics>>,
 }
 
-impl<'a> Drop for Renderer<'a> {
+impl Drop for Renderer {
     fn drop(&mut self) {
+        self.present_queue.take();
+        debug_assert!(self.present_queue.is_none());
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
         self.compute_pool.take();
@@ -42,30 +44,30 @@ impl<'a> Drop for Renderer<'a> {
     }
 }
 
-impl<'a> CapturedEvent for Renderer<'a> {
+impl CapturedEvent for Renderer {
     fn on_resize(&mut self, size : LogicalSize) {
-        self.swapchain.as_mut().unwrap().recreate(self.backend.get_surface());
+        self.swapchain.as_mut().unwrap().recreate(self.backend.get_surface_mut());
     }
 }
 
-impl<'a> Renderer<'a> {
+impl Renderer {
     /// Initializes the renderer for the specified window.
     pub fn new(window : &winit::Window) -> Self {
         info!("Initializing Renderer.");
-
         // Initialize backend.
         let mut backend = Backend::new(window);
 
         // Create device and all associated queues.
         let (device, compute_queue,
-            mut graphics_queue, transfer_queue)
-            = Device::new(backend.get_primary_adapter());
+            mut graphics_queue, transfer_queue,
+            present_queue)
+            = Device::new(backend.get_primary_adapter(), backend.get_surface());
 
         // Create initial swapchain for rendering.
         let swapchain = Some(Swapchain::new(
             Rc::clone(&device.clone().unwrap()),
-            Rc::clone(&graphics_queue.clone().unwrap()),
-            backend.get_surface(),
+            Rc::clone(&present_queue.clone().unwrap()),
+            backend.get_surface_mut(),
             2).expect("Failed to create swapchain."));
 
         // Create pools for each queue.
@@ -80,16 +82,10 @@ impl<'a> Renderer<'a> {
             Rc::clone(&device.clone().unwrap()),
             &mut transfer_queue.as_ref().unwrap().borrow_mut()))));
 
-        // Allocate buffers for each pool.
-        let graphics_buffers = Vec::<CmdBuffer<_, _>>::new();
-//        for i in 0..2 {
-//            graphics_buffers.push(graphics_pool.get_cmd_buffer());
-//        }
-
         info!("Renderer has been initialized.");
         Self { backend, device, swapchain, compute_queue, compute_pool, graphics_queue,
-            graphics_pool: Some(Rc::new(RefCell::new(graphics_pool))), graphics_buffers,
-            transfer_queue, transfer_pool }
+            graphics_pool: Some(Rc::new(RefCell::new(graphics_pool))),
+            transfer_queue, transfer_pool, present_queue }
     }
 
     pub fn begin_frame(&mut self) {

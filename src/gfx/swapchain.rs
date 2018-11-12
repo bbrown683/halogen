@@ -3,7 +3,7 @@ use std::iter;
 use std::rc::Rc;
 use hal::format::{self, Format};
 use hal::{AcquireError, Backbuffer, Backend, Capability, Device as LogicalDevice, FrameSync, PresentMode, Surface, SurfaceCapabilities,
-         Swapchain as GfxSwapchain, SwapchainConfig, SwapImageIndex};
+          Swapchain as GfxSwapchain, SwapchainConfig, SwapImageIndex};
 use crate::gfx::{Device, Queue};
 
 /// Controls the presentation to a surface.
@@ -40,11 +40,6 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
                present_queue : Rc<RefCell<Queue<B, C>>>,
                mut surface : &mut B::Surface,
                image_count : u32) -> Result<Self,String> {
-        // Check to see if queue supports presentation.
-        if !surface.supports_queue_family(device.borrow().get_queue_family(present_queue.borrow().get_queue_group().family())) {
-            return Err("graphics queue does not support presenting to swapchain.".to_string());
-        }
-
         // Grab surface capabilities, formats, and present modes.
         // TODO: find best format and present mode from iterator. we are using selected defaults currently.
         let (caps, formats, present_modes) = surface.compatibility(device.borrow().get_physical_device());
