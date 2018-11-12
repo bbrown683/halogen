@@ -49,7 +49,8 @@ impl<B: Backend> Device<B> {
             if surface.supports_queue_family(queue_family) {
                 present_queue_id = QueueFamilyId(i);
             }
-            if queue_family.supports_graphics() {
+            if queue_family.queue_type() == QueueType::General ||
+                queue_family.queue_type() == QueueType::Graphics {
                 graphics_queue_id = QueueFamilyId(i);
             }
             if queue_family.queue_type() == QueueType::Compute {

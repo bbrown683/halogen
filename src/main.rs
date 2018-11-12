@@ -4,7 +4,7 @@ extern crate clap;
 extern crate directories;
 extern crate flate2;
 extern crate gfx_hal as hal;
-extern crate gfx_backend_vulkan as back;
+extern crate gfx_backend_dx12 as back;
 extern crate image;
 extern crate imgui;
 extern crate lewton;
