@@ -4,7 +4,10 @@ extern crate clap;
 extern crate directories;
 extern crate flate2;
 extern crate gfx_hal as hal;
+#[cfg(feature="dx12")]
 extern crate gfx_backend_dx12 as back;
+#[cfg(not(feature="dx12"))]
+extern crate gfx_backend_vulkan as back;
 extern crate image;
 extern crate imgui;
 extern crate lewton;
@@ -45,6 +48,7 @@ fn main() {
     // Set paths.
     let user_dirs = UserDirs::new();
     let halogen_path = user_dirs.as_ref().unwrap().document_dir().unwrap().join("Halogen");
+    let cfg_path = halogen_path.join("settings.toml");
     let log_path = halogen_path.join("runtime.log");
 
     if !halogen_path.exists() {

@@ -11,11 +11,12 @@ pub struct Renderer {
     backend : Backend,
     device : Option<Rc<RefCell<Device<BackendType>>>>,
     compute_queue : Option<Rc<RefCell<Queue<BackendType, Compute>>>>,
-    compute_pool : Option<Rc<RefCell<CmdPool<BackendType, Compute>>>>,
+    compute_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
     graphics_queue : Option<Rc<RefCell<Queue<BackendType, Graphics>>>>,
-    graphics_pool : Option<Rc<RefCell<CmdPool<BackendType, Graphics>>>>,
+    graphics_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
+    graphics_buffer : Option<CmdBuffer<BackendType>>,
     transfer_queue: Option<Rc<RefCell<Queue<BackendType, Transfer>>>>,
-    transfer_pool : Option<Rc<RefCell<CmdPool<BackendType, Transfer>>>>,
+    transfer_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
     present_queue : Option<Rc<RefCell<Queue<BackendType, Graphics>>>>,
     swapchain : Option<Swapchain<BackendType, Graphics>>,
 }
@@ -30,6 +31,8 @@ impl Drop for Renderer {
         debug_assert!(self.compute_pool.is_none());
         self.compute_queue.take();
         debug_assert!(self.compute_queue.is_none());
+        self.graphics_buffer.take();
+        debug_assert!(self.graphics_buffer.is_none());
         self.graphics_pool.take();
         debug_assert!(self.graphics_pool.is_none());
         self.graphics_queue.take();
@@ -75,17 +78,26 @@ impl Renderer {
         let compute_pool = Some(Rc::new(RefCell::new(CmdPool::new(
             Rc::clone(&device.clone().unwrap()),
             &mut compute_queue.as_ref().unwrap().borrow_mut()))));
-        let graphics_pool = CmdPool::new(
+        let mut graphics_pool = Rc::new(RefCell::new(CmdPool::new(
             Rc::clone(&device.clone().unwrap()),
-            &mut graphics_queue.as_ref().unwrap().borrow_mut());
+            &mut graphics_queue.as_ref().unwrap().borrow_mut())));
         let transfer_pool = Some(Rc::new(RefCell::new(CmdPool::new(
             Rc::clone(&device.clone().unwrap()),
             &mut transfer_queue.as_ref().unwrap().borrow_mut()))));
 
+        let graphics_buffer = Some(CmdBuffer::new(
+            Rc::clone(&device.clone().unwrap()),
+            Rc::clone(&graphics_pool.clone())));
+
         info!("Renderer has been initialized.");
         Self { backend, device, swapchain, compute_queue, compute_pool, graphics_queue,
-            graphics_pool: Some(Rc::new(RefCell::new(graphics_pool))),
+            graphics_pool: Some(graphics_pool), graphics_buffer,
             transfer_queue, transfer_pool, present_queue }
+    }
+
+    pub fn build_cmd_buffers(&mut self) {
+        self.graphics_buffer.as_mut().unwrap().begin_pass();
+        self.graphics_buffer.as_mut().unwrap().end_pass();
     }
 
     pub fn begin_frame(&mut self) {

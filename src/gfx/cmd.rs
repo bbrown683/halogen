@@ -1,29 +1,41 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use hal::{Backend, Capability, CommandPool, Device as LogicalDevice};
-use hal::command::{CommandBuffer, Primary, MultiShot, Submittable};
-use hal::pool::{CommandPoolCreateFlags};
+use hal::command::{RawCommandBuffer, RawLevel};
+use hal::pool::{CommandPoolCreateFlags, RawCommandPool};
 use crate::gfx::{Device, Queue};
 
 /// A recorder for graphics, compute, or transfer operations.
-pub struct CmdBuffer<'a, B: Backend, C: Capability> {
+pub struct CmdBuffer<B: Backend> {
     device : Rc<RefCell<Device<B>>>,
-    cmd_buffer : Option<CommandBuffer<'a, B, C, MultiShot, Primary>>,
+    cmd_pool : Rc<RefCell<CmdPool<B>>>,
+    cmd_buffer : Option<B::CommandBuffer>,
     fence : Option<B::Fence>,
 }
 
-impl<'a, B: Backend, C: Capability> Drop for CmdBuffer<'a, B, C> {
+impl<B: Backend> Drop for CmdBuffer<B> {
     fn drop(&mut self) {
+        unsafe {
+            let cmd_buffers = vec![self.cmd_buffer.take().unwrap()];
+            &self.cmd_pool.borrow_mut().get_cmd_pool().free(cmd_buffers);
+        }
+        debug_assert!(self.cmd_buffer.is_none());
         &self.device.borrow().get_logical_device().destroy_fence(self.fence.take().unwrap());
         debug_assert!(self.fence.is_none());
         info!("Dropped CmdBuffer")
     }
 }
 
-impl<'a, B: Backend, C: Capability> CmdBuffer<'a, B, C> {
-    pub fn begin_pass() { unimplemented!() }
+impl<B: Backend> CmdBuffer<B> {
+    pub fn new(device : Rc<RefCell<Device<B>>>, cmd_pool : Rc<RefCell<CmdPool<B>>>) -> Self {
+        let cmd_buffer = Some(cmd_pool.borrow_mut().get_cmd_pool().allocate(1, RawLevel::Primary).remove(0));
+        let fence = Some(device.borrow().get_logical_device().create_fence(true).expect("Failed to create fence."));
+        Self { device, cmd_pool, cmd_buffer, fence }
+    }
 
-    pub fn end_pass() { unimplemented!() }
+    pub fn begin_pass(&mut self) {  }
+
+    pub fn end_pass(&mut self) {  }
 
     pub fn get_fence(&self) -> &Option<B::Fence> {
         &self.fence
@@ -31,41 +43,35 @@ impl<'a, B: Backend, C: Capability> CmdBuffer<'a, B, C> {
 }
 
 /// Allocates the command buffers into memory for reuse.
-pub struct CmdPool<B: Backend, C: Capability> {
+pub struct CmdPool<B: Backend> {
     device : Rc<RefCell<Device<B>>>,
-    cmd_pool : Option<CommandPool<B, C>>,
+    cmd_pool : Option<B::CommandPool>,
 }
 
-impl<B: Backend, C: Capability> Drop for CmdPool<B, C> {
+impl<B: Backend> Drop for CmdPool<B> {
     fn drop(&mut self) {
-        &self.device.borrow().get_logical_device().destroy_command_pool(self.cmd_pool.take().unwrap().into_raw());
+        &self.device.borrow().get_logical_device().destroy_command_pool(self.cmd_pool.take().unwrap());
         debug_assert!(self.cmd_pool.is_none());
         info!("Dropped CmdPool")
     }
 }
 
-impl<B: Backend, C: Capability> CmdPool<B, C> {
-    pub fn new(device : Rc<RefCell<Device<B>>>, queue : &mut Queue<B, C>) -> Self {
+impl<B: Backend> CmdPool<B> {
+    pub fn new<C: Capability>(device : Rc<RefCell<Device<B>>>, queue : &mut Queue<B, C>) -> Self {
         let cmd_pool = Some(device
             .borrow()
             .get_logical_device()
-            .create_command_pool_typed(queue.get_queue_group_mut(),
-                                       CommandPoolCreateFlags::RESET_INDIVIDUAL, num_cpus::get())
-            .expect("Failed to create command pool"));
+            .create_command_pool(queue.get_queue_group_mut().family(),
+                                       CommandPoolCreateFlags::RESET_INDIVIDUAL)
+            .expect("Failed to create command pool."));
         Self { device, cmd_pool }
-    }
-
-    pub fn get_cmd_buffer(&mut self) -> CmdBuffer<B, C> {
-        let cmd_buffer = Some(self.cmd_pool.as_mut().unwrap().acquire_command_buffer(false));
-        let fence = Some(self.device.borrow().get_logical_device().create_fence(true).expect("Failed to create fence."));
-        CmdBuffer { device: self.device.clone(), cmd_buffer, fence }
     }
 
     pub fn reset(&mut self) {
         self.cmd_pool.as_mut().unwrap().reset();
     }
 
-    pub fn get_cmd_pool(&mut self) -> &mut CommandPool<B, C> {
+    pub fn get_cmd_pool(&mut self) -> &mut B::CommandPool {
         self.cmd_pool.as_mut().unwrap()
     }
 }

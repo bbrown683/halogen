@@ -71,6 +71,7 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             present_modes, swap_config, swapchain: Some(swapchain), backbuffer, acquire_semaphores: Some(acquire_semaphores) })
     }
 
+    /// Returns the next image index in the swapchain. This is typically used at the beginning of a render pass.
     pub fn get_next_image(&mut self) -> SwapImageIndex {
         let acquire_result = self.swapchain
             .as_mut()
@@ -102,6 +103,7 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             .unwrap();
     }
 
+    /// Recreates the swapchain. This is particularly useful in the event of resizes.
     pub fn recreate(&mut self, mut surface : &mut B::Surface) {
         &self.device.borrow().get_logical_device().wait_idle().unwrap();
 
@@ -166,6 +168,4 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
 
     /// Selects the present mode to use for the swapchain.
     fn select_present_mode(self, present_modes : Vec<PresentMode>) -> PresentMode { unimplemented!()}
-
-
 }

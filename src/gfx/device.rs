@@ -3,7 +3,7 @@ use std::rc::Rc;
 use hal::{Adapter, Backend, Compute, Graphics, Transfer, Device as LogicalDevice, Features, General,
           Limits, MemoryProperties, PhysicalDevice, QueueFamily, Surface };
 use hal::queue::{QueueFamilyId, QueueType};
-use crate::gfx::{Queue};
+use crate::gfx::Queue;
 
 /// This module features the lowest level types needed by the other modules for creating resources,
 /// managing render state, etc.
@@ -26,8 +26,10 @@ impl<B: Backend> Drop for Device<B> {
 impl<B: Backend> Device<B> {
     /// Creates a new rendering device for the specified adapter and surface.
     pub fn new(adapter : Adapter<B>, surface : &B::Surface)
-        -> (Option<Rc<RefCell<Self>>>, Option<Rc<RefCell<Queue<B, Compute>>>>,
-            Option<Rc<RefCell<Queue<B, Graphics>>>>, Option<Rc<RefCell<Queue<B, Transfer>>>>,
+        -> (Option<Rc<RefCell<Self>>>,
+            Option<Rc<RefCell<Queue<B, Compute>>>>,
+            Option<Rc<RefCell<Queue<B, Graphics>>>>,
+            Option<Rc<RefCell<Queue<B, Transfer>>>>,
             Option<Rc<RefCell<Queue<B, Graphics>>>>) {
         let features = adapter.physical_device.features();
         let memory_properties = adapter.physical_device.memory_properties();
@@ -72,8 +74,6 @@ impl<B: Backend> Device<B> {
         (Some(Rc::new(RefCell::new(Self { adapter, features, memory_properties, limits, logical_device: device }))),
          compute_group, graphics_group, transfer_group, present_group)
     }
-
-    pub fn get_adapter(&self) -> &Adapter<B> { &self.adapter }
 
     /// Returns a handle to the logical `Device`.
     pub fn get_logical_device(&self) -> &B::Device {

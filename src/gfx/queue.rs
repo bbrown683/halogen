@@ -22,7 +22,7 @@ impl<B: Backend, C: Capability> Queue<B, C> {
     }
 
     /// Submits the submittable to the specified queue.
-    pub fn submit<S>(mut self, cmd_buffer : &CmdBuffer<B, C>, signal_semaphores : &Vec<B::Semaphore>) where S: Supports<C> {
+    pub fn submit<S>(mut self, cmd_buffer : &CmdBuffer<B>, signal_semaphores : &Vec<B::Semaphore>) where S: Supports<C> {
         /*
         let submission = Submission::new()
             .signal(signal_semaphores)
