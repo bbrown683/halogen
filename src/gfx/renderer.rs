@@ -4,8 +4,8 @@ use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use hal::{Compute, Graphics, Transfer};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use crate::gfx::{Backend, BackendType, CmdBuffer, CmdPool, Device, Framebuffer, Queue, QueueSet,
-                 RenderPass, Swapchain};
+use crate::gfx::{Backend, BackendType, CmdBuffer, CmdPool, Device, Framebuffer, PoolSet,
+                 Queue, QueueSet, RenderPass, Swapchain};
 use crate::util::CapturedEvent;
 
 /// The highest level of the gfx module, the `Renderer` manages all render state.
@@ -13,10 +13,8 @@ pub struct Renderer {
     backend : Backend,
     device : Option<Rc<RefCell<Device<BackendType>>>>,
     queue_set : Option<QueueSet<BackendType>>,
-    compute_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
-    graphics_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
+    pool_set : Option<PoolSet<BackendType>>,
     graphics_buffer : Option<Arc<Mutex<CmdBuffer<BackendType>>>>,
-    transfer_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
     swapchain : Option<Rc<RefCell<Swapchain<BackendType, Graphics>>>>,
     default_render_pass : Option<RenderPass<BackendType>>,
     framebuffers : Option<Vec<Framebuffer<BackendType>>>,
@@ -30,14 +28,10 @@ impl Drop for Renderer {
         debug_assert!(self.framebuffers.is_none());
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
-        self.compute_pool.take();
-        debug_assert!(self.compute_pool.is_none());
         self.graphics_buffer.take();
         debug_assert!(self.graphics_buffer.is_none());
-        self.graphics_pool.take();
-        debug_assert!(self.graphics_pool.is_none());
-        self.transfer_pool.take();
-        debug_assert!(self.transfer_pool.is_none());
+        self.pool_set.take();
+        debug_assert!(self.pool_set.is_none());
         self.queue_set.take();
         debug_assert!(self.queue_set.is_none());
         self.device.take();
@@ -69,9 +63,7 @@ impl Renderer {
         let mut backend = Backend::new(window);
 
         // Create device and all associated queues.
-        let (device, mut queue_set) = Device::new(
-            backend.get_primary_adapter(),
-            backend.get_surface());
+        let (device, queue_set) = Device::new(backend.get_primary_adapter());
 
         // Create initial swapchain for rendering.
         let swapchain = Rc::new(RefCell::new(Swapchain::new(
@@ -85,6 +77,7 @@ impl Renderer {
             false,
             1);
 
+        // Create list of framebuffers.
         let mut framebuffers = Vec::<Framebuffer<_>>::new();
         for image in swapchain.borrow().get_images() {
             framebuffers.push(Framebuffer::new(
@@ -94,39 +87,37 @@ impl Renderer {
                 swapchain.borrow().get_swapchain_config().extent.to_extent()));
         }
 
-        // Create pools for each queue.
+        // Create pools for each queue. Store them in a set to reduce clutter.
         // TODO: Should this be a vector of pools for each frame to synchronize resources?
-        let compute_pool = Rc::new(RefCell::new(CmdPool::new(
-            Rc::clone(&device),
-            &mut queue_set.get_compute_queue().borrow_mut())));
-        let mut graphics_pool = Rc::new(RefCell::new(CmdPool::new(
-            Rc::clone(&device),
-            &mut queue_set.get_graphics_queue().borrow_mut())));
-        let transfer_pool = Rc::new(RefCell::new(CmdPool::new(
-            Rc::clone(&device),
-            &mut queue_set.get_transfer_queue().borrow_mut())));
+        let pool_set = PoolSet::new(
+            CmdPool::new(Rc::clone(&device),
+                         &mut queue_set.get_compute_queue().borrow_mut()),
+            CmdPool::new(Rc::clone(&device),
+                         &mut queue_set.get_graphics_queue().borrow_mut()),
+            CmdPool::new(Rc::clone(&device),
+                         &mut queue_set.get_transfer_queue().borrow_mut())
+        );
 
         let graphics_buffer = Arc::new(Mutex::new(CmdBuffer::new(
             Rc::clone(&device),
-            Rc::clone(&graphics_pool))));
+            Rc::clone(&pool_set.get_graphics_pool()))));
 
         info!("Renderer has been initialized.");
         Self { backend,
             device: Some(device),
-            queue_set : Some(queue_set),
+            queue_set: Some(queue_set),
+            pool_set: Some(pool_set),
             swapchain: Some(swapchain),
-            compute_pool : Some(compute_pool),
-            graphics_pool: Some(graphics_pool),
-            graphics_buffer : Some(graphics_buffer),
-            transfer_pool : Some(transfer_pool),
+            graphics_buffer: Some(graphics_buffer),
             default_render_pass: Some(default_render_pass),
-            framebuffers : Some(framebuffers),
+            framebuffers: Some(framebuffers),
         }
     }
 
     pub fn build_cmd_buffers(&mut self) {
-//        self.graphics_buffer.as_mut().unwrap().begin_pass();
-//        self.graphics_buffer.as_mut().unwrap().end_pass();
+        // TODO: Use rayon to build cmd buffers in parallel.
+//        self.graphics_buffer.as_mut().unwrap();
+//        self.graphics_buffer.as_mut().unwrap();
     }
 
     pub fn begin_frame(&mut self) {

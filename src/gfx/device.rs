@@ -25,7 +25,7 @@ impl<B: Backend> Drop for Device<B> {
 
 impl<B: Backend> Device<B> {
     /// Creates a new rendering device for the specified adapter and surface.
-    pub fn new(adapter : Adapter<B>, surface : &B::Surface)
+    pub fn new(adapter : Adapter<B>)
         -> (Rc<RefCell<Self>>, QueueSet<B>) {
         let features = adapter.physical_device.features();
         let memory_properties = adapter.physical_device.memory_properties();
@@ -35,7 +35,6 @@ impl<B: Backend> Device<B> {
         // associated with a priority.
         // Additionally find each queue family of the specified type, individually,
         // if possible.
-        let mut present_queue_id = QueueFamilyId(0);
         let mut graphics_queue_id = QueueFamilyId(0);
         let mut compute_queue_id = QueueFamilyId(0);
         let mut transfer_queue_id = QueueFamilyId(0);
@@ -44,9 +43,6 @@ impl<B: Backend> Device<B> {
         for i in 0..adapter.queue_families.len() {
             let queue_family = adapter.queue_families.get(i).unwrap();
             queues.push((queue_family, &[1.0; 1]));
-            if surface.supports_queue_family(queue_family) {
-                present_queue_id = QueueFamilyId(i);
-            }
             if queue_family.queue_type() == QueueType::General ||
                 queue_family.queue_type() == QueueType::Graphics {
                 graphics_queue_id = QueueFamilyId(i);

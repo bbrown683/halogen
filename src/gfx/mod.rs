@@ -8,7 +8,7 @@ mod queue;
 mod swapchain;
 mod renderer;
 
-pub use self::cmd::{CmdBuffer, CmdPool};
+pub use self::cmd::{CmdBuffer, CmdPool, PoolSet};
 pub use self::device::Device;
 pub use self::framebuffer::Framebuffer;
 //pub use self::material::{Material, MaterialBuilder};

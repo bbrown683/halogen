@@ -5,6 +5,36 @@ use hal::command::{RawCommandBuffer, RawLevel};
 use hal::pool::{CommandPoolCreateFlags, RawCommandPool};
 use crate::gfx::{Device, Queue};
 
+pub struct PoolSet<B: Backend> {
+    compute : Rc<RefCell<CmdPool<B>>>,
+    graphics : Rc<RefCell<CmdPool<B>>>,
+    transfer  : Rc<RefCell<CmdPool<B>>>
+}
+
+impl<B: Backend> PoolSet<B> {
+    pub fn new(compute : CmdPool<B>,
+               graphics : CmdPool<B>,
+               transfer  : CmdPool<B>) -> Self {
+        Self {
+            compute: Rc::new(RefCell::new(compute)),
+            graphics: Rc::new(RefCell::new(graphics)),
+            transfer: Rc::new(RefCell::new(transfer)),
+        }
+    }
+
+    pub fn get_compute_pool(&self) -> &Rc<RefCell<CmdPool<B>>> {
+        &self.compute
+    }
+
+    pub fn get_graphics_pool(&self) -> &Rc<RefCell<CmdPool<B>>> {
+        &self.graphics
+    }
+
+    pub fn get_transfer_pool(&self) -> &Rc<RefCell<CmdPool<B>>> {
+        &self.transfer
+    }
+}
+
 /// A recorder for graphics, compute, or transfer operations.
 pub struct CmdBuffer<B: Backend> {
     device : Rc<RefCell<Device<B>>>,

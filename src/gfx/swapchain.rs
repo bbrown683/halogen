@@ -41,6 +41,12 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
                present_queue : Rc<RefCell<Queue<B, C>>>,
                mut surface : &mut B::Surface,
                image_count : u32) -> Result<Self,String> {
+        // TODO: Works on vulkan, but crashes on dx12. dx12 has separate presentation queue.
+        if !surface.supports_queue_family(device.borrow().get_queue_family(
+            present_queue.borrow().get_queue_group().family())) {
+            return Err("Queue does not support presentation.".to_string());
+        }
+
         // Grab surface capabilities, formats, and present modes.
         // TODO: find best format and present mode from iterator. we are using selected defaults currently.
         let (caps, formats, present_modes) = surface.compatibility(device.borrow().get_physical_device());
