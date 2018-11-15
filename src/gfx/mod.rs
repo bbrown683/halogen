@@ -12,9 +12,9 @@ pub use self::cmd::{CmdBuffer, CmdPool};
 pub use self::device::Device;
 pub use self::framebuffer::Framebuffer;
 //pub use self::material::{Material, MaterialBuilder};
-pub use self::pass::{RenderPass, RenderPassBuilder};
+pub use self::pass::RenderPass;
 //pub use self::pipeline::{Pipeline, PipelineBuilder};
-pub use self::queue::Queue;
+pub use self::queue::{Queue, QueueSet};
 pub use self::renderer::Renderer;
 pub use self::swapchain::Swapchain;
 

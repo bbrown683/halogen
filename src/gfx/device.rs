@@ -3,7 +3,7 @@ use std::rc::Rc;
 use hal::{Adapter, Backend, Compute, Graphics, Transfer, Device as LogicalDevice, Features, General,
           Limits, MemoryProperties, PhysicalDevice, QueueFamily, Surface };
 use hal::queue::{QueueFamilyId, QueueType};
-use crate::gfx::Queue;
+use crate::gfx::{Queue, QueueSet};
 
 /// This module features the lowest level types needed by the other modules for creating resources,
 /// managing render state, etc.
@@ -26,11 +26,7 @@ impl<B: Backend> Drop for Device<B> {
 impl<B: Backend> Device<B> {
     /// Creates a new rendering device for the specified adapter and surface.
     pub fn new(adapter : Adapter<B>, surface : &B::Surface)
-        -> (Option<Rc<RefCell<Self>>>,
-            Option<Rc<RefCell<Queue<B, Compute>>>>,
-            Option<Rc<RefCell<Queue<B, Graphics>>>>,
-            Option<Rc<RefCell<Queue<B, Transfer>>>>,
-            Option<Rc<RefCell<Queue<B, Graphics>>>>) {
+        -> (Rc<RefCell<Self>>, QueueSet<B>) {
         let features = adapter.physical_device.features();
         let memory_properties = adapter.physical_device.memory_properties();
         let limits = adapter.physical_device.limits();
@@ -66,13 +62,17 @@ impl<B: Backend> Device<B> {
         let mut gpu = adapter.physical_device.open(queues.as_slice())
             .expect("Failed to create logical device.");
         let device = gpu.device;
-        let compute_group = Some(Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Compute>(compute_queue_id).unwrap()))));
-        let graphics_group = Some(Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Graphics>(graphics_queue_id).unwrap()))));
-        let transfer_group = Some(Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Transfer>(transfer_queue_id).unwrap()))));
-        let present_group = Some(Rc::clone(&graphics_group.clone().unwrap()));
+//        let compute_group = Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Compute>(compute_queue_id).unwrap())));
+//        let graphics_group = Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Graphics>(graphics_queue_id).unwrap())));
+//        let transfer_group = Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Transfer>(transfer_queue_id).unwrap())));
+//        let present_group = Rc::clone(&graphics_group);
 
-        (Some(Rc::new(RefCell::new(Self { adapter, features, memory_properties, limits, logical_device: device }))),
-         compute_group, graphics_group, transfer_group, present_group)
+        let queue_set = QueueSet::new(Queue::new(gpu.queues.take::<Compute>(compute_queue_id).unwrap()),
+            Queue::new(gpu.queues.take::<Graphics>(graphics_queue_id).unwrap()),
+            Queue::new(gpu.queues.take::<Transfer>(transfer_queue_id).unwrap()));
+
+        (Rc::new(RefCell::new(Self { adapter, features, memory_properties, limits, logical_device: device })),
+         queue_set)
     }
 
     /// Returns a handle to the logical `Device`.

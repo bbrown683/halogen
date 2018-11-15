@@ -1,6 +1,50 @@
-use hal::{Backend, Capability, Device, QueueGroup };
+use std::cell::RefCell;
+use std::rc::Rc;
+use hal::{Backend, Capability, Compute, Device, Graphics, QueueGroup, Transfer};
 use hal::queue::{Submission, Supports};
 use crate::gfx::CmdBuffer;
+
+pub struct QueueSet<B: Backend> {
+    compute : Rc<RefCell<Queue<B, Compute>>>,
+    graphics : Rc<RefCell<Queue<B, Graphics>>>,
+    transfer : Rc<RefCell<Queue<B, Transfer>>>,
+}
+
+impl<B: Backend> QueueSet<B> {
+    pub fn new(compute : Queue<B, Compute>,
+               graphics : Queue<B, Graphics>,
+               transfer : Queue<B, Transfer>) -> Self {
+        Self {
+            compute: Rc::new(RefCell::new(compute)),
+            graphics: Rc::new(RefCell::new(graphics)),
+            transfer: Rc::new(RefCell::new(transfer))
+        }
+    }
+
+    pub fn get_compute_queue(&self) -> &Rc<RefCell<Queue<B, Compute>>> {
+        &self.compute
+    }
+
+    pub fn get_graphics_queue(&self) -> &Rc<RefCell<Queue<B, Graphics>>> {
+        &self.graphics
+    }
+
+    pub fn get_transfer_queue(&self) -> &Rc<RefCell<Queue<B, Transfer>>> {
+        &self.transfer
+    }
+
+    pub fn get_compute_queue_mut(&mut self) -> &mut Rc<RefCell<Queue<B, Compute>>> {
+        &mut self.compute
+    }
+
+    pub fn get_graphics_queue_mut(&mut self) -> &mut Rc<RefCell<Queue<B, Graphics>>> {
+        &mut self.graphics
+    }
+
+    pub fn get_transfer_queue_mut(&mut self) -> &mut Rc<RefCell<Queue<B, Transfer>>> {
+        &mut self.transfer
+    }
+}
 
 pub struct Queue<B: Backend, C: Capability> {
     queue_group : QueueGroup<B, C>,

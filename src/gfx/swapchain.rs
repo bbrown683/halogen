@@ -2,7 +2,9 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 use hal::format::{self, Format};
-use hal::{AcquireError, Backbuffer, Backend, Capability, Device as LogicalDevice, FrameSync, PresentMode, Surface, SurfaceCapabilities,
+use hal::image::Extent;
+use hal::{AcquireError, Backbuffer, Backbuffer::Images, Backbuffer::Framebuffer, Backend, Capability,
+          Device as LogicalDevice, FrameSync, PresentMode, Surface, SurfaceCapabilities,
           Swapchain as GfxSwapchain, SwapchainConfig, SwapImageIndex};
 use crate::gfx::{Device, Queue};
 
@@ -17,7 +19,7 @@ pub struct Swapchain<B: Backend, C: Capability> {
     present_modes : Vec<PresentMode>,
     swap_config : SwapchainConfig,
     swapchain : Option<B::Swapchain>,
-    backbuffer : Backbuffer<B>,
+    images : Vec<B::Image>,
     acquire_semaphores : Option<Vec<B::Semaphore>>
 }
 
@@ -61,14 +63,30 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             .create_swapchain(&mut surface, swap_config.clone(), None)
             .expect("Failed to create swapchain.");
 
+        let mut images = Vec::<B::Image>::new();
+        match backbuffer {
+            Backbuffer::Images(image) => images = image,
+            Backbuffer::Framebuffer(fbo) => println!("Framebuffer was in the backbuffer."), // Should not have this case.
+        }
+
         // Initialize our acquire semaphores.
         let acquire_semaphores = iter::repeat_with(
             ||device.borrow().get_logical_device().create_semaphore().expect("Failed to create semaphore."))
             .take(image_count as _)
             .collect();
 
-        Ok(Self { device, present_queue, current_image: 0, image_count, caps, formats: formats.unwrap(),
-            present_modes, swap_config, swapchain: Some(swapchain), backbuffer, acquire_semaphores: Some(acquire_semaphores) })
+        Ok(Self { device,
+            present_queue,
+            current_image: 0,
+            image_count,
+            caps,
+            formats: formats.unwrap(),
+            present_modes,
+            swap_config,
+            swapchain: Some(swapchain),
+            images,
+            acquire_semaphores: Some(acquire_semaphores)
+        })
     }
 
     /// Returns the next image index in the swapchain. This is typically used at the beginning of a render pass.
@@ -122,36 +140,42 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
             .create_swapchain(&mut surface, swap_config.clone(), self.swapchain.take())
             .expect("Failed to recreate swapchain.");
 
+        // Grab the images.
+        let images = match backbuffer {
+            Backbuffer::Images(images) => images,
+            Backbuffer::Framebuffer(fbo) => Vec::new(),
+        };
+
         // Update our parameters to their new values.
         self.caps = caps;
         self.formats = formats.unwrap();
         self.present_modes = present_modes;
         self.swap_config = swap_config;
         self.swapchain = Some(swapchain);
-        self.backbuffer = backbuffer;
+        self.images = images;
     }
 
     /// Returns the current image index which the swapchain is referring to.
-    pub fn get_current_image(self) -> SwapImageIndex {
+    pub fn get_current_image(&self) -> SwapImageIndex {
         self.current_image
     }
 
     /// Returns the capabilities provided by the surface which initialized this Swapchain.
-    pub fn get_surface_capabilities(self) -> SurfaceCapabilities {
+    pub fn get_surface_capabilities(&self) -> SurfaceCapabilities {
         self.caps.clone()
     }
 
     /// Returns the configuration which was selected for the current Swapchain. This provides the
     /// format, extent, present mode, and number of images for the Swapchain.
-    pub fn get_swapchain_config(self) -> SwapchainConfig {
+    pub fn get_swapchain_config(&self) -> SwapchainConfig {
         self.swap_config.clone()
     }
 
     /// Returns all formats supported by the surface initialized with the Swapchain.
-    pub fn get_supported_formats(self) -> Vec<Format> { self.formats.clone() }
+    pub fn get_supported_formats(&self) -> Vec<Format> { self.formats.clone() }
 
     /// Returns all present modes supported by the surface initialized with the Swapchain.
-    pub fn get_supported_present_modes(self) -> Vec<PresentMode> { self.present_modes.clone() }
+    pub fn get_supported_present_modes(&self) -> Vec<PresentMode> { self.present_modes.clone() }
 
     /// Returns a reference to the Swapchain.
     pub fn get_swapchain(&self) -> &Option<B::Swapchain> {
@@ -159,13 +183,13 @@ impl<B: Backend, C: Capability> Swapchain<B, C> {
     }
 
     /// Returns the backbuffer associated with this Swapchain, allowing access to the images.
-    pub fn get_backbuffer(&self) -> &Backbuffer<B> {
-        &self.backbuffer
+    pub fn get_images(&self) -> &Vec<B::Image> {
+        &self.images
     }
 
     /// Picks the color format for the swapchain.
-    fn select_color_format(self, formats : Vec<Format>, preferred : Option<Format>) -> Format { unimplemented!() }
+    fn select_color_format(&self, formats : Vec<Format>, preferred : Option<Format>) -> Format { unimplemented!() }
 
     /// Selects the present mode to use for the swapchain.
-    fn select_present_mode(self, present_modes : Vec<PresentMode>) -> PresentMode { unimplemented!()}
+    fn select_present_mode(&self, present_modes : Vec<PresentMode>) -> PresentMode { unimplemented!()}
 }
