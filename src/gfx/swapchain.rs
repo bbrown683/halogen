@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 use hal::format::{self, Format};
-use hal::image::Extent;
 use hal::{AcquireError, Backbuffer, Backbuffer::Images, Backbuffer::Framebuffer, Backend, Capability,
           Device as LogicalDevice, FrameSync, PresentMode, Surface, SurfaceCapabilities,
           Swapchain as GfxSwapchain, SwapchainConfig, SwapImageIndex};

@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Adapter, Backend, Compute, Graphics, Transfer, Device as LogicalDevice, Features, General,
+use hal::{Adapter, Backend, Compute, Graphics, Transfer, Device as LogicalDevice, Features,
           Limits, MemoryProperties, PhysicalDevice, QueueFamily, Surface };
 use hal::queue::{QueueFamilyId, QueueType};
 use crate::gfx::{Queue, QueueSet};
@@ -62,11 +62,6 @@ impl<B: Backend> Device<B> {
         let mut gpu = adapter.physical_device.open(queues.as_slice())
             .expect("Failed to create logical device.");
         let device = gpu.device;
-//        let compute_group = Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Compute>(compute_queue_id).unwrap())));
-//        let graphics_group = Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Graphics>(graphics_queue_id).unwrap())));
-//        let transfer_group = Rc::new(RefCell::new(Queue::new(gpu.queues.take::<Transfer>(transfer_queue_id).unwrap())));
-//        let present_group = Rc::clone(&graphics_group);
-
         let queue_set = QueueSet::new(Queue::new(gpu.queues.take::<Compute>(compute_queue_id).unwrap()),
             Queue::new(gpu.queues.take::<Graphics>(graphics_queue_id).unwrap()),
             Queue::new(gpu.queues.take::<Transfer>(transfer_queue_id).unwrap()));

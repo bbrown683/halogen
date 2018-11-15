@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use hal::{Backend, Capability, CommandPool, Device as LogicalDevice};
+use hal::{Backend, Capability, Device as LogicalDevice};
 use hal::command::{RawCommandBuffer, RawLevel};
 use hal::pool::{CommandPoolCreateFlags, RawCommandPool};
 use crate::gfx::{Device, Queue};

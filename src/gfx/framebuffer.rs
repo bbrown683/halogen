@@ -3,7 +3,6 @@ use std::rc::Rc;
 use hal::{Backend, Device as DeviceTrait};
 use hal::format::{Aspects, Format, Swizzle};
 use hal::image::{Extent, SubresourceRange, ViewKind};
-use hal::pso::Viewport;
 use crate::gfx::{Device, RenderPass};
 
 pub struct Framebuffer<B: Backend> {

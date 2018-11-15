@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
+use std::sync::{Arc,Mutex};
 use hal::{Compute, Graphics, Transfer};
 use winit::dpi::{LogicalPosition, LogicalSize};
 use crate::gfx::{Backend, BackendType, CmdBuffer, CmdPool, Device, Framebuffer, Queue, QueueSet,
@@ -14,7 +15,7 @@ pub struct Renderer {
     queue_set : Option<QueueSet<BackendType>>,
     compute_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
     graphics_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
-    graphics_buffer : Option<CmdBuffer<BackendType>>,
+    graphics_buffer : Option<Arc<Mutex<CmdBuffer<BackendType>>>>,
     transfer_pool : Option<Rc<RefCell<CmdPool<BackendType>>>>,
     swapchain : Option<Rc<RefCell<Swapchain<BackendType, Graphics>>>>,
     default_render_pass : Option<RenderPass<BackendType>>,
@@ -105,9 +106,9 @@ impl Renderer {
             Rc::clone(&device),
             &mut queue_set.get_transfer_queue().borrow_mut())));
 
-        let graphics_buffer = CmdBuffer::new(
+        let graphics_buffer = Arc::new(Mutex::new(CmdBuffer::new(
             Rc::clone(&device),
-            Rc::clone(&graphics_pool));
+            Rc::clone(&graphics_pool))));
 
         info!("Renderer has been initialized.");
         Self { backend,
@@ -124,8 +125,8 @@ impl Renderer {
     }
 
     pub fn build_cmd_buffers(&mut self) {
-        self.graphics_buffer.as_mut().unwrap().begin_pass();
-        self.graphics_buffer.as_mut().unwrap().end_pass();
+//        self.graphics_buffer.as_mut().unwrap().begin_pass();
+//        self.graphics_buffer.as_mut().unwrap().end_pass();
     }
 
     pub fn begin_frame(&mut self) {
