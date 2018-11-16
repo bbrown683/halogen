@@ -25,8 +25,11 @@ impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
             self.surface_loader.destroy_surface_khr(self.surface, None);
-            self.debug_report_loader.take().unwrap().destroy_debug_report_callback_ext(
-                self.debug_report.take().unwrap(), None);
+            // Check if debug report extension was toggled.
+            if self.debug_report_loader.is_some() {
+                self.debug_report_loader.take().unwrap().destroy_debug_report_callback_ext(
+                    self.debug_report.take().unwrap(), None);
+            }
             self.instance.destroy_instance(None);
             info!("Dropped Instance.")
         }
@@ -59,21 +62,28 @@ impl Instance {
             let instance = entry.create_instance(&instance_info, None)
                 .expect("Failed to create vulkan instance.");
 
-            let debug_info = vk::DebugReportCallbackCreateInfoEXT {
-                s_type: vk::StructureType::DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-                p_next: ptr::null(),
-                flags: vk::DebugReportFlagsEXT::ERROR
-                    | vk::DebugReportFlagsEXT::WARNING
-                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING,
-                pfn_callback: Some(debug_callback),
-                p_user_data: ptr::null_mut(),
+            // Only enable the report callback on debug builds.
+            let (debug_report_loader, debug_report) = if cfg!(debug_assertions) {
+                let debug_info = vk::DebugReportCallbackCreateInfoEXT {
+                    s_type: vk::StructureType::DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
+                    p_next: ptr::null(),
+                    flags: vk::DebugReportFlagsEXT::ERROR
+                        | vk::DebugReportFlagsEXT::WARNING
+                        | vk::DebugReportFlagsEXT::DEBUG
+                        | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
+                        | vk::DebugReportFlagsEXT::INFORMATION,
+                    pfn_callback: Some(debug_callback),
+                    p_user_data: ptr::null_mut(),
+                };
+                let debug_report_loader = DebugReport::new(&entry, &instance);
+                let debug_report = debug_report_loader.create_debug_report_callback_ext(
+                    &debug_info,
+                    None)
+                    .unwrap();
+                (Some(debug_report_loader), Some(debug_report))
+            } else {
+                (None, None)
             };
-
-            let debug_report_loader = DebugReport::new(&entry, &instance);
-            let debug_report = debug_report_loader.create_debug_report_callback_ext(
-                &debug_info,
-                None)
-                .unwrap();
 
             let surface_loader = Surface::new(&entry, &instance);
             let surface = create_surface(&entry, &instance, window);
@@ -85,8 +95,8 @@ impl Instance {
             Self {
                 entry,
                 instance,
-                debug_report_loader: Some(debug_report_loader),
-                debug_report: Some(debug_report),
+                debug_report_loader,
+                debug_report,
                 surface_loader,
                 surface,
                 physical_devices
@@ -94,7 +104,19 @@ impl Instance {
         }
     }
 
-    pub fn select_physical_device(mut self) -> vk::PhysicalDevice {
+    pub fn get_instance(&self) -> &ash::Instance {
+        &self.instance
+    }
+
+    pub fn get_surface(&self) -> &vk::SurfaceKHR {
+        &self.surface
+    }
+
+    pub fn get_physical_devices(&self) -> &Vec<vk::PhysicalDevice> {
+        &self.physical_devices
+    }
+
+    pub fn get_primary_physical_device(&mut self) -> vk::PhysicalDevice {
         self.physical_devices.remove(0)
     }
 }
