@@ -1,13 +1,9 @@
 #![feature(extern_crate_item_prelude,range_contains)]
+extern crate ash;
 extern crate alto;
 extern crate clap;
 extern crate directories;
 extern crate flate2;
-extern crate gfx_hal as hal;
-#[cfg(feature="dx12")]
-extern crate gfx_backend_dx12 as back;
-#[cfg(not(feature="dx12"))]
-extern crate gfx_backend_vulkan as back;
 extern crate image;
 extern crate imgui;
 extern crate lewton;
@@ -25,6 +21,8 @@ extern crate specs;
 extern crate spirv_headers;
 extern crate tokio;
 extern crate toml;
+#[cfg(windows)]
+extern crate winapi;
 extern crate winit;
 
 /// Internal module handling the gfx-hal library.
