@@ -3,18 +3,22 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::instance::Instance;
+use super::{Device, Instance, Swapchain};
 use crate::util::CapturedEvent;
-
-
 
 /// The highest level of the gfx module, the `Renderer` manages all render state.
 pub struct Renderer {
-    instance : Option<Instance>
+    instance : Option<Instance>,
+    device : Option<Device>,
+    swapchain : Option<Swapchain>,
 }
 
 impl Drop for Renderer {
     fn drop(&mut self) {
+        self.swapchain.take();
+        debug_assert!(self.swapchain.is_none());
+        self.device.take();
+        debug_assert!(self.device.is_none());
         self.instance.take();
         debug_assert!(self.instance.is_none());
         info!("Dropped Renderer.");
@@ -33,9 +37,20 @@ impl Renderer {
     pub fn new(window : &winit::Window) -> Self {
         unsafe {
             info!("Initializing Renderer.");
-            let instance = Instance::new(window);
+            // TODO: Properly handle errors here and present them to the output.
+
+            let instance = Instance::new();
+            let device = Device::new(&instance)
+                .ok()
+                .unwrap();
+            let swapchain = Swapchain::new(&instance, &device, window)
+                .ok()
+                .unwrap();
             info!("Renderer has been initialized.");
-            Self { instance: Some(instance) }
+            Self { instance: Some(instance),
+                device: Some(device),
+                swapchain: Some(swapchain)
+            }
         }
     }
 

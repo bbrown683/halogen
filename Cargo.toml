@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 alto = "3.0.3"
-ash = "0.25.0"
+ash = "0.26.0"
 clap = "2.32.0"
 directories = "1.0.2"
 flate2 = "1.0.4"
@@ -32,3 +32,6 @@ winit = "0.17.2"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.6", features = ["windef"] }
+
+[features]
+vk_1_1 = []

@@ -11,20 +11,28 @@ use ash::version::{EntryV1_0, InstanceV1_0};
 use super::platform::{create_surface, get_required_instance_extensions};
 use super::debug::debug_callback;
 
+/// Provides a brief overview of why an instance failed to be created.
+pub enum InstanceCreationError {
+    /// Triggered if there is no [Vulkan ICD](https://github.com/KhronosGroup/Vulkan-LoaderAndValidationLayers/blob/master/loader/LoaderAndLayerInterface.md#installable-client-drivers).
+    MissingDriver,
+    /// There are required extensions which were not found.
+    MissingExtensions,
+    /// There are required layers which were not found. This would only be triggered in debug mode.
+    MissingLayers,
+}
+
+/// Contains vulkan instance-level loaders and handles.
 pub struct Instance {
     entry : ash::Entry,
     instance : ash::Instance,
     debug_report_loader : Option<DebugReport>,
     debug_report : Option<vk::DebugReportCallbackEXT>,
-    surface_loader : Surface,
-    surface : vk::SurfaceKHR,
     physical_devices : Vec<vk::PhysicalDevice>,
 }
 
 impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
-            self.surface_loader.destroy_surface_khr(self.surface, None);
             // Check if debug report extension was toggled.
             if self.debug_report_loader.is_some() {
                 self.debug_report_loader.take().unwrap().destroy_debug_report_callback_ext(
@@ -37,7 +45,7 @@ impl Drop for Instance {
 }
 
 impl Instance {
-    pub fn new(window : &winit::Window) -> Self {
+    pub fn new() -> Self {
         unsafe {
             let entry = ash::Entry::new().unwrap();
 
@@ -85,9 +93,6 @@ impl Instance {
                 (None, None)
             };
 
-            let surface_loader = Surface::new(&entry, &instance);
-            let surface = create_surface(&entry, &instance, window);
-
             let physical_devices = instance
                 .enumerate_physical_devices()
                 .expect("Failed to retrieve physical devices.");
@@ -97,26 +102,28 @@ impl Instance {
                 instance,
                 debug_report_loader,
                 debug_report,
-                surface_loader,
-                surface,
                 physical_devices
             }
         }
     }
 
-    pub fn get_instance(&self) -> &ash::Instance {
+    /// Returns the ash entrypoint.
+    pub fn get_ash_entry(&self) -> &ash::Entry {
+        &self.entry
+    }
+
+    /// Returns the ash instance.
+    pub fn get_ash_instance(&self) -> &ash::Instance {
         &self.instance
     }
 
-    pub fn get_surface(&self) -> &vk::SurfaceKHR {
-        &self.surface
+    /// Returns all physical devices.
+    pub fn get_physical_devices(&self) -> Vec<vk::PhysicalDevice> {
+        self.physical_devices.clone()
     }
 
-    pub fn get_physical_devices(&self) -> &Vec<vk::PhysicalDevice> {
-        &self.physical_devices
-    }
-
-    pub fn get_primary_physical_device(&mut self) -> vk::PhysicalDevice {
-        self.physical_devices.remove(0)
+    /// Returns the first adapter in the sequence.
+    pub fn select_primary_physical_device(&self) -> vk::PhysicalDevice {
+        self.physical_devices.clone().remove(0)
     }
 }
