@@ -1,5 +1,3 @@
-//! High-level wrapper for [ash](https://github.com/MaikKlein/ash) around typical types.
-
 pub mod cmd;
 pub mod debug;
 pub mod device;

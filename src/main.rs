@@ -1,4 +1,4 @@
-#![feature(extern_crate_item_prelude,range_contains)]
+#![feature(range_contains)]
 extern crate ash;
 extern crate alto;
 extern crate clap;
@@ -7,8 +7,7 @@ extern crate flate2;
 extern crate image;
 extern crate imgui;
 extern crate lewton;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 extern crate log4rs;
 extern crate nalgebra;
 extern crate ncollide3d;
@@ -23,8 +22,8 @@ extern crate tokio;
 extern crate toml;
 extern crate winit;
 
-/// Internal module handling the gfx-hal library.
-pub mod gfx;
+/// High-level wrapper for [ash](https://github.com/MaikKlein/ash) around typical types.
+pub mod rhi;
 pub mod util;
 
 use std::fs;
@@ -93,7 +92,7 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let mut renderer = gfx::Renderer::new(&window);
+    let mut renderer = rhi::Renderer::new(&window);
 
     let mut running = true;
     while running {

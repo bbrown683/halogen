@@ -6,7 +6,7 @@ use winit::dpi::{LogicalPosition, LogicalSize};
 use super::{Device, Framebuffer, Instance, RenderPass, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
-/// The highest level of the gfx module, the `Renderer` manages all render state.
+/// The highest level of the rhi module, the `Renderer` manages all render state.
 pub struct Renderer {
     instance : Option<Rc<RefCell<Instance>>>,
     device : Option<Rc<RefCell<Device>>>,
