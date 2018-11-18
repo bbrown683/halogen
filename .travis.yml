@@ -1,8 +1,7 @@
 language: rust
 os:
   - windows
+  - linux
 rust:
-  - stable
-  - beta
   - nightly
 cache: cargo
