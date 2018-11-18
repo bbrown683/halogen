@@ -26,8 +26,8 @@ extern crate winapi;
 extern crate winit;
 
 /// Internal module handling the gfx-hal library.
-mod gfx;
-mod util;
+pub mod gfx;
+pub mod util;
 
 use std::fs;
 use std::path;

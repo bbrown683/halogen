@@ -1,12 +1,14 @@
+use std::cell::RefCell;
 use std::default::Default;
 use std::ffi::{CStr, CString};
 use std::ops::Drop;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
+use std::rc::Rc;
 use ash::extensions::Swapchain;
 use ash::version::{InstanceV1_0, DeviceV1_0};
 use ash::vk;
-use super::instance::Instance;
+use super::{Instance, Queue};
 
 pub enum DeviceCreationError {
     MissingExtensions
@@ -15,6 +17,9 @@ pub enum DeviceCreationError {
 pub struct Device {
     physical_device : vk::PhysicalDevice,
     device : ash::Device,
+    compute_index : u32,
+    graphics_index : u32,
+    transfer_index : u32,
 }
 
 impl Drop for Device {
@@ -22,6 +27,7 @@ impl Drop for Device {
         unsafe {
             self.device.device_wait_idle().unwrap();
             self.device.destroy_device(None);
+            info!("Dropped Device")
         }
     }
 }
@@ -30,51 +36,60 @@ impl Device {
     pub fn new(instance: &Instance) -> Result<Self,DeviceCreationError> {
         unsafe {
             let physical_device = instance.select_primary_physical_device();
-            let graphics_queue_index = instance
+            let queue_families = instance
                 .get_ash_instance()
-                .get_physical_device_queue_family_properties(physical_device.clone())
-                .iter()
-                .enumerate()
-                .filter_map(|(index, ref info)| {
-                    let supports_graphics = info.queue_flags.contains(vk::QueueFlags::GRAPHICS);
-                    match supports_graphics {
-                        true => Some(index),
-                        _ => None
-                    }
-                }).nth(0)
-                .unwrap() as u32;
+                .get_physical_device_queue_family_properties(physical_device);
+            let mut compute_index = 0;
+            let mut graphics_index = 0;
+            let mut transfer_index = 0;
+            for index in 0..queue_families.len() {
+                let queue_family = queue_families.get(index).unwrap();
+                if queue_family.queue_flags & vk::QueueFlags::GRAPHICS
+                    == vk::QueueFlags::GRAPHICS {
+                    graphics_index = index as u32;
+                }
+                if queue_family.queue_flags & vk::QueueFlags::COMPUTE
+                    == vk::QueueFlags::COMPUTE {
+                    compute_index = index as u32;
+                }
+                if queue_family.queue_flags & vk::QueueFlags::TRANSFER
+                    == vk::QueueFlags::TRANSFER {
+                    transfer_index = index as u32;
+                }
+            }
 
-            let device_extension_names = [Swapchain::name().as_ptr()];
             let priorities = [1.0];
 
-            let queue_info = vk::DeviceQueueCreateInfo {
-                s_type: vk::StructureType::DEVICE_QUEUE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: Default::default(),
-                queue_family_index: graphics_queue_index,
-                p_queue_priorities: priorities.as_ptr(),
-                queue_count: priorities.len() as u32,
-            };
+            let compute_info = vk::DeviceQueueCreateInfo::builder()
+                .queue_family_index(compute_index)
+                .queue_priorities(&priorities)
+                .build();
+            let graphics_info = vk::DeviceQueueCreateInfo::builder()
+                .queue_family_index(graphics_index)
+                .queue_priorities(&priorities)
+                .build();
+            let transfer_info = vk::DeviceQueueCreateInfo::builder()
+                .queue_family_index(transfer_index)
+                .queue_priorities(&priorities)
+                .build();
 
-            let device_info = vk::DeviceCreateInfo {
-                s_type: vk::StructureType::DEVICE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: Default::default(),
-                queue_create_info_count: 1,
-                p_queue_create_infos: &queue_info,
-                enabled_layer_count: 0,
-                pp_enabled_layer_names: ptr::null(),
-                enabled_extension_count: device_extension_names.len() as u32,
-                pp_enabled_extension_names: device_extension_names.as_ptr(),
-                p_enabled_features: &Default::default(),
-            };
+            let queue_infos = vec![compute_info, graphics_info, transfer_info];
+            let device_extensions = [Swapchain::name().as_ptr()];
+            let device_info = vk::DeviceCreateInfo::builder()
+                .queue_create_infos(queue_infos.as_slice())
+                .enabled_extension_names(device_extensions.as_ref())
+                .build();
 
             let device = instance
                 .get_ash_instance()
                 .create_device(physical_device, &device_info, None)
                 .unwrap();
-            Ok(Self { physical_device,
+            Ok(Self {
+                physical_device,
                 device,
+                compute_index,
+                graphics_index,
+                transfer_index,
             })
         }
     }
@@ -85,5 +100,17 @@ impl Device {
 
     pub fn get_physical_device(&self) -> vk::PhysicalDevice {
         self.physical_device.clone()
+    }
+
+    pub fn get_compute_queue_index(&self) -> u32 {
+        self.compute_index
+    }
+
+    pub fn get_graphics_queue_index(&self) -> u32 {
+        self.graphics_index
+    }
+
+    pub fn get_transfer_queue_index(&self) -> u32 {
+        self.transfer_index
     }
 }
