@@ -1,4 +1,6 @@
 language: rust
+os:
+  - windows
 rust:
   - stable
   - beta
