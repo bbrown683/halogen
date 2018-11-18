@@ -43,8 +43,7 @@ impl Drop for Renderer {
 impl CapturedEvent for Renderer {
     /// When this event is captured, the swapchain is recreated, and regenerates all framebuffers from the swapchain images.
     fn on_resize(&mut self, _size : LogicalSize) {
-        /* TODO: Implement resize handling.
-        self.swapchain.as_ref().unwrap().recreate();
+        self.swapchain.as_mut().unwrap().recreate();
         self.framebuffers.as_mut().unwrap().clear();
         for image in self.swapchain.as_ref().unwrap().get_images() {
             self.framebuffers.as_mut().unwrap().push(Framebuffer::new(
@@ -53,7 +52,6 @@ impl CapturedEvent for Renderer {
                 image,
                 self.swapchain.as_ref().unwrap().get_capabilities().current_extent));
         }
-        */
     }
 }
 

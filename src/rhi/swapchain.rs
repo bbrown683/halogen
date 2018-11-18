@@ -28,6 +28,7 @@ pub struct Swapchain {
     swapchain : vk::SwapchainKHR,
     acquire_semaphores : Vec<vk::Semaphore>,
     images : Vec<vk::Image>,
+    image_count : u32,
     current_image : u32,
 }
 
@@ -139,6 +140,7 @@ impl Swapchain {
                 swapchain,
                 acquire_semaphores,
                 images,
+                image_count,
                 current_image: 0,
             })
         }
@@ -182,8 +184,53 @@ impl Swapchain {
     }
 
     /// Recreates the swapchain. This is particularly useful in the event of resizes.
-    pub fn recreate(&self) {
+    pub fn recreate(&mut self) {
+        unsafe {
+            self.capabilities = self.surface_loader
+                .get_physical_device_surface_capabilities_khr(
+                    self.device.borrow().get_physical_device(),
+                    self.surface)
+                .unwrap();
+            self.formats = self.surface_loader
+                .get_physical_device_surface_formats_khr(
+                    self.device.borrow().get_physical_device(),
+                    self.surface)
+                .unwrap();
+            self.present_modes = self.surface_loader
+                .get_physical_device_surface_present_modes_khr(
+                    self.device.borrow().get_physical_device(),
+                    self.surface)
+                .unwrap();
 
+            let (format, color_space) = select_color_format(
+                self.formats.clone(),
+                vk::Format::B8G8R8A8_SRGB);
+
+            let swapchain_info = vk::SwapchainCreateInfoKHR::builder()
+                .surface(self.surface)
+                .old_swapchain(self.swapchain)
+                .image_extent(self.capabilities.current_extent)
+                .image_format(format)
+                .image_color_space(color_space)
+                .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+                .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
+                .image_array_layers(1)
+                .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+                .min_image_count(self.image_count)
+                .clipped(true)
+                .build();
+
+            let swapchain = self.swapchain_loader
+                .create_swapchain_khr(&swapchain_info, None)
+                .expect("Failed to create swapchain");
+
+            self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
+            self.swapchain = swapchain;
+
+            self.images = self.swapchain_loader
+                .get_swapchain_images_khr(self.swapchain)
+                .unwrap();
+        }
     }
 
     /// Returns the images associated with this Swapchain, used in the creation of a Framebuffer.
