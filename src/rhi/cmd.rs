@@ -52,9 +52,7 @@ impl CmdBuffer {
 
     pub fn begin_pass(&self, state : CmdState, render_pass : &RenderPass, framebuffer : &Framebuffer) {
         let clear_value = vk::ClearValue {
-            color: vk::ClearColorValue {
-                float32: [0.39, 0.58, 0.93, 1.0]
-            }
+            color: vk::ClearColorValue { float32: [0.39, 0.58, 0.93, 1.0] }
         };
 
         let begin_pass_info = vk::RenderPassBeginInfo::builder()

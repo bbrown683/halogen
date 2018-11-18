@@ -12,6 +12,7 @@ pub unsafe extern "system" fn debug_callback(
     p_message : *const c_char,
     p_user_data : *mut c_void,
 ) -> u32 {
+    // TODO: Use info!, debug!, etc for logging specific messages.
     println!("{:?} - {:?}", flags, CStr::from_ptr(p_message));
     vk::FALSE
 }

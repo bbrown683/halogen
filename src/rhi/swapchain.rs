@@ -54,104 +54,115 @@ impl Swapchain {
                present_queue : Rc<RefCell<Queue>>,
                window : &winit::Window,
                image_count : u32) -> Result<Self,SwapchainCreationError> {
-        unsafe {
-            // Initializes surface entry points and creates one.
-            let surface_loader = SurfaceLoader::new(
-                instance.borrow().get_ash_entry(),
-                instance.borrow().get_ash_instance());
-            let surface = create_surface(
-                instance.borrow().get_ash_entry(),
-                instance.borrow().get_ash_instance(), window);
+        // Initializes surface entry points and creates one.
+        let surface_loader = SurfaceLoader::new(
+            instance.borrow().get_ash_entry(),
+            instance.borrow().get_ash_instance());
+        let surface = create_surface(
+            instance.borrow().get_ash_entry(),
+            instance.borrow().get_ash_instance(), window);
 
-            // Verifies that the device supports presentation.
-            if !surface_loader.get_physical_device_surface_support_khr(
+        let supports_present = unsafe {
+            surface_loader.get_physical_device_surface_support_khr(
                 device.borrow().get_physical_device(),
                 0,
-                surface) {
-                return Err(SwapchainCreationError::QueuePresentUnsupported);
-            }
+                surface)
+        };
 
-            // Grab surface capabilities, formats, and present modes.
-            let capabilities = surface_loader
+        // Verifies that the device supports presentation.
+        if !supports_present {
+            return Err(SwapchainCreationError::QueuePresentUnsupported);
+        }
+
+        // Grab surface capabilities, formats, and present modes.
+        let (capabilities, formats, present_modes) = unsafe {
+            let _capabilities = surface_loader
                 .get_physical_device_surface_capabilities_khr(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
-            let formats = surface_loader
+            let _formats = surface_loader
                 .get_physical_device_surface_formats_khr(
                     device.borrow().get_physical_device(),
-                surface)
+                    surface)
                 .unwrap();
-            let present_modes = surface_loader
+            let _present_modes = surface_loader
                 .get_physical_device_surface_present_modes_khr(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
+            (_capabilities, _formats, _present_modes)
+        };
 
-            let swapchain_loader = SwapchainLoader::new(
-                instance.borrow().get_ash_instance(),
-                device.borrow().get_ash_device());
+        let swapchain_loader = SwapchainLoader::new(
+            instance.borrow().get_ash_instance(),
+            device.borrow().get_ash_device());
 
-            let (format, color_space) = select_color_format(
-                formats.clone(),
-                vk::Format::B8G8R8A8_SRGB);
+        let (format, color_space) = select_color_format(
+            formats.clone(),
+            vk::Format::B8G8R8A8_SRGB);
 
-            let swapchain_info = vk::SwapchainCreateInfoKHR::builder()
-                .surface(surface)
-                .image_extent(capabilities.current_extent)
-                .image_format(format)
-                .image_color_space(color_space)
-                .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
-                .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
-                .image_array_layers(1)
-                .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-                .min_image_count(image_count)
-                .clipped(true)
-                .build();
+        let swapchain_info = vk::SwapchainCreateInfoKHR::builder()
+            .surface(surface)
+            .image_extent(capabilities.current_extent)
+            .image_format(format)
+            .image_color_space(color_space)
+            .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+            .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
+            .image_array_layers(1)
+            .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+            .min_image_count(image_count)
+            .clipped(true)
+            .build();
 
-            let swapchain = swapchain_loader
+        let swapchain = unsafe {
+            swapchain_loader
                 .create_swapchain_khr(&swapchain_info, None)
-                .expect("Failed to create swapchain");
+                .expect("Failed to create swapchain")
+        };
 
-            // Initialize our acquire semaphores.
-            let semaphore_info = vk::SemaphoreCreateInfo::builder()
-                .build();
-            let acquire_semaphores = iter::repeat_with(||
+        // Initialize our acquire semaphores.
+        let semaphore_info = vk::SemaphoreCreateInfo::builder()
+            .build();
+        let acquire_semaphores = iter::repeat_with(||
+            unsafe {
                 device
                     .borrow()
                     .get_ash_device()
                     .create_semaphore(&semaphore_info, None)
-                    .expect("Failed to create semaphore"))
-                .take(image_count as _)
-                .collect();
-
-            let images = swapchain_loader
-                .get_swapchain_images_khr(swapchain)
-                .unwrap();
-
-            Ok(Self { instance,
-                device,
-                present_queue,
-                surface_loader,
-                surface,
-                capabilities,
-                format,
-                formats,
-                present_modes,
-                swapchain_loader,
-                swapchain,
-                acquire_semaphores,
-                images,
-                image_count,
-                current_image: 0,
+                    .expect("Failed to create semaphore")
             })
-        }
+            .take(image_count as _)
+            .collect();
+
+        let images = unsafe {
+            swapchain_loader
+                .get_swapchain_images_khr(swapchain)
+                .unwrap()
+        };
+
+        Ok(Self { instance,
+            device,
+            present_queue,
+            surface_loader,
+            surface,
+            capabilities,
+            format,
+            formats,
+            present_modes,
+            swapchain_loader,
+            swapchain,
+            acquire_semaphores,
+            images,
+            image_count,
+            current_image: 0,
+        })
     }
 
     /// Returns the next image index in the swapchain. This is typically used at the beginning of a render pass.
     pub fn get_next_image(&mut self) -> u32 {
-        unsafe {
-            let acquire_result = self.swapchain_loader
+        let acquire_result = unsafe {
+            self.swapchain_loader
                 .acquire_next_image_khr(
                     self.swapchain,
                     u64::max_value(),
@@ -159,14 +170,14 @@ impl Swapchain {
                         .get(self.current_image as usize)
                         .unwrap()
                         .clone(),
-                    vk::Fence::null());
-            if acquire_result.is_err() {
-                error!("Failed to acquire image!");
-            } else {
-                self.current_image = acquire_result.unwrap().0;
-            }
-            self.current_image
+                    vk::Fence::null())
+        };
+        if acquire_result.is_err() {
+            error!("Failed to acquire image!");
+        } else {
+            self.current_image = acquire_result.unwrap().0;
         }
+        self.current_image
     }
 
     /// Presents the image to the screen, using the specified present queue. The present queue can be any queue
@@ -177,12 +188,12 @@ impl Swapchain {
             .image_indices(&[self.current_image])
             .swapchains(&[self.swapchain])
             .build();
-        unsafe {
-            // TODO: Use value to validate present status.
-            let present_status = self.swapchain_loader.queue_present_khr(
+        // TODO: Use value to validate present status.
+        let present_status = unsafe {
+            self.swapchain_loader.queue_present_khr(
                 self.present_queue.borrow().get_queue_raw(),
-                &present_info);
-        }
+                &present_info)
+        };
     }
 
     /// Recreates the swapchain. This is particularly useful in the event of resizes.
@@ -203,37 +214,40 @@ impl Swapchain {
                     self.device.borrow().get_physical_device(),
                     self.surface)
                 .unwrap();
+        }
 
-            let (format, color_space) = select_color_format(
-                self.formats.clone(),
-                vk::Format::B8G8R8A8_SRGB);
+        let (format, color_space) = select_color_format(
+            self.formats.clone(),
+            vk::Format::B8G8R8A8_SRGB);
 
-            let swapchain_info = vk::SwapchainCreateInfoKHR::builder()
-                .surface(self.surface)
-                .old_swapchain(self.swapchain)
-                .image_extent(self.capabilities.current_extent)
-                .image_format(format)
-                .image_color_space(color_space)
-                .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
-                .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
-                .image_array_layers(1)
-                .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-                .min_image_count(self.image_count)
-                .clipped(true)
-                .build();
+        let swapchain_info = vk::SwapchainCreateInfoKHR::builder()
+            .surface(self.surface)
+            .old_swapchain(self.swapchain)
+            .image_extent(self.capabilities.current_extent)
+            .image_format(format)
+            .image_color_space(color_space)
+            .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+            .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
+            .image_array_layers(1)
+            .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+            .min_image_count(self.image_count)
+            .clipped(true)
+            .build();
 
-            let swapchain = self.swapchain_loader
+        self.swapchain = unsafe {
+            let new_swapchain = self.swapchain_loader
                 .create_swapchain_khr(&swapchain_info, None)
                 .expect("Failed to create swapchain");
-
             self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
-            self.swapchain = swapchain;
+            (new_swapchain)
+        };
 
-            self.format = format;
-            self.images = self.swapchain_loader
+        self.format = format;
+        self.images = unsafe {
+            self.swapchain_loader
                 .get_swapchain_images_khr(self.swapchain)
-                .unwrap();
-        }
+                .unwrap()
+        };
     }
 
     /// Returns the images associated with this Swapchain, used in the creation of a Framebuffer.
