@@ -31,7 +31,7 @@ impl Queue {
         }
     }
 
-    pub fn get_queue(&self) -> vk::Queue {
+    pub fn get_queue_raw(&self) -> vk::Queue {
         self.queue
     }
 

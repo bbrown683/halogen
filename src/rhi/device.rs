@@ -32,78 +32,82 @@ impl Drop for Device {
 
 impl Device {
     pub fn new(instance: &Instance) -> Result<Self,DeviceCreationError> {
-        unsafe {
-            let physical_device = instance.select_primary_physical_device();
-            let properties = instance
+        let physical_device = instance.select_primary_physical_device();
+        let (properties, features, limits, memory_properties, queue_families) = unsafe {
+            let _properties = instance
                 .get_ash_instance()
                 .get_physical_device_properties(physical_device);
-            let features = instance
+            let _features = instance
                 .get_ash_instance()
                 .get_physical_device_features(physical_device);
-            let limits = properties.limits;
-            let memory_properties = instance
+            let _limits = _properties.limits;
+            let _memory_properties = instance
                 .get_ash_instance()
                 .get_physical_device_memory_properties(physical_device);
-
-            let queue_families = instance
+            let _queue_families = instance
                 .get_ash_instance()
                 .get_physical_device_queue_family_properties(physical_device);
-            let mut compute_index = 0;
-            let mut graphics_index = 0;
-            let mut transfer_index = 0;
-            for index in 0..queue_families.len() {
-                let queue_family = queue_families.get(index).unwrap();
-                if queue_family.queue_flags & vk::QueueFlags::GRAPHICS
-                    == vk::QueueFlags::GRAPHICS {
-                    graphics_index = index as u32;
-                }
-                if queue_family.queue_flags & vk::QueueFlags::COMPUTE
-                    == vk::QueueFlags::COMPUTE {
-                    compute_index = index as u32;
-                }
-                if queue_family.queue_flags & vk::QueueFlags::TRANSFER
-                    == vk::QueueFlags::TRANSFER {
-                    transfer_index = index as u32;
-                }
+            (_properties, _features, _limits, _memory_properties, _queue_families)
+        };
+
+        let mut compute_index = 0;
+        let mut graphics_index = 0;
+        let mut transfer_index = 0;
+        for index in 0..queue_families.len() {
+            let queue_family = queue_families.get(index).unwrap();
+            if queue_family.queue_flags & vk::QueueFlags::GRAPHICS
+                == vk::QueueFlags::GRAPHICS {
+                graphics_index = index as u32;
             }
+            if queue_family.queue_flags & vk::QueueFlags::COMPUTE
+                == vk::QueueFlags::COMPUTE {
+                compute_index = index as u32;
+            }
+            if queue_family.queue_flags & vk::QueueFlags::TRANSFER
+                == vk::QueueFlags::TRANSFER {
+                transfer_index = index as u32;
+            }
+        }
 
-            let priorities = [1.0];
+        let priorities = [1.0];
 
-            let compute_info = vk::DeviceQueueCreateInfo::builder()
-                .queue_family_index(compute_index)
-                .queue_priorities(&priorities)
-                .build();
-            let graphics_info = vk::DeviceQueueCreateInfo::builder()
-                .queue_family_index(graphics_index)
-                .queue_priorities(&priorities)
-                .build();
-            let transfer_info = vk::DeviceQueueCreateInfo::builder()
-                .queue_family_index(transfer_index)
-                .queue_priorities(&priorities)
-                .build();
+        let compute_info = vk::DeviceQueueCreateInfo::builder()
+            .queue_family_index(compute_index)
+            .queue_priorities(&priorities)
+            .build();
+        let graphics_info = vk::DeviceQueueCreateInfo::builder()
+            .queue_family_index(graphics_index)
+            .queue_priorities(&priorities)
+            .build();
+        let transfer_info = vk::DeviceQueueCreateInfo::builder()
+            .queue_family_index(transfer_index)
+            .queue_priorities(&priorities)
+            .build();
 
-            let queue_infos = vec![compute_info, graphics_info, transfer_info];
-            let device_extensions = [Swapchain::name().as_ptr()];
-            let device_info = vk::DeviceCreateInfo::builder()
-                .queue_create_infos(queue_infos.as_slice())
-                .enabled_extension_names(device_extensions.as_ref())
-                .build();
+        let queue_infos = vec![compute_info, graphics_info, transfer_info];
+        let device_extensions = [Swapchain::name().as_ptr()];
+        let device_info = vk::DeviceCreateInfo::builder()
+            .queue_create_infos(queue_infos.as_slice())
+            .enabled_extension_names(device_extensions.as_ref())
+            .build();
 
-            let device = instance
+        let device = unsafe {
+            instance
                 .get_ash_instance()
                 .create_device(physical_device, &device_info, None)
-                .unwrap();
-            Ok(Self {
-                physical_device,
-                properties,
-                limits,
-                memory_properties,
-                device,
-                compute_index,
-                graphics_index,
-                transfer_index,
-            })
-        }
+                .unwrap()
+        };
+
+        Ok(Self {
+            physical_device,
+            properties,
+            limits,
+            memory_properties,
+            device,
+            compute_index,
+            graphics_index,
+            transfer_index,
+        })
     }
 
     pub fn get_ash_device(&self) -> &ash::Device {

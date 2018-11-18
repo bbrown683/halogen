@@ -27,7 +27,6 @@ pub mod rhi;
 pub mod util;
 
 use std::fs;
-use std::path;
 use std::str::FromStr;
 use clap::{Arg, App, crate_authors, crate_description, crate_name, crate_version};
 use directories::UserDirs;

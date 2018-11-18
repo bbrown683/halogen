@@ -41,57 +41,62 @@ impl Drop for Instance {
 
 impl Instance {
     pub fn new() -> Self {
-        unsafe {
-            let entry = ash::Entry::new().unwrap();
+        let entry = ash::Entry::new().unwrap();
 
-            let layer_names = [CString::new("VK_LAYER_LUNARG_standard_validation").unwrap()];
-            let layer_names_raw: Vec<*const i8> = layer_names
-                .iter()
-                .map(|raw_name| raw_name.as_ptr())
-                .collect();
+        let layer_names = [CString::new("VK_LAYER_LUNARG_standard_validation").unwrap()];
+        let layer_names_raw: Vec<*const i8> = layer_names
+            .iter()
+            .map(|raw_name| raw_name.as_ptr())
+            .collect();
 
-            let extension_names = get_required_instance_extensions();
+        let extension_names = get_required_instance_extensions();
 
-            let instance_info = vk::InstanceCreateInfo::builder()
-                .enabled_extension_names(&extension_names)
-                .enabled_layer_names(&layer_names_raw)
+        let instance_info = vk::InstanceCreateInfo::builder()
+            .enabled_extension_names(&extension_names)
+            .enabled_layer_names(&layer_names_raw)
+            .build();
+
+        let instance = unsafe {
+            entry.create_instance(&instance_info, None)
+                .expect("Failed to create vulkan instance.")
+        };
+
+        // Only enable the report callback on debug builds.
+        let (debug_report_loader, debug_report) = if cfg!(debug_assertions) {
+            let debug_info = vk::DebugReportCallbackCreateInfoEXT::builder()
+                .flags(vk::DebugReportFlagsEXT::ERROR
+                    | vk::DebugReportFlagsEXT::WARNING
+                    | vk::DebugReportFlagsEXT::DEBUG
+                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
+                    | vk::DebugReportFlagsEXT::INFORMATION)
+                .pfn_callback(Some(debug_callback))
                 .build();
 
-            let instance = entry.create_instance(&instance_info, None)
-                .expect("Failed to create vulkan instance.");
-
-            // Only enable the report callback on debug builds.
-            let (debug_report_loader, debug_report) = if cfg!(debug_assertions) {
-                let debug_info = vk::DebugReportCallbackCreateInfoEXT::builder()
-                    .flags(vk::DebugReportFlagsEXT::ERROR
-                        | vk::DebugReportFlagsEXT::WARNING
-                        | vk::DebugReportFlagsEXT::DEBUG
-                        | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
-                        | vk::DebugReportFlagsEXT::INFORMATION)
-                    .pfn_callback(Some(debug_callback))
-                    .build();
-
-                let debug_report_loader = DebugReport::new(&entry, &instance);
-                let debug_report = debug_report_loader.create_debug_report_callback_ext(
+            let debug_report_loader = DebugReport::new(&entry, &instance);
+            let debug_report = unsafe {
+                debug_report_loader.create_debug_report_callback_ext(
                     &debug_info,
                     None)
-                    .unwrap();
-                (Some(debug_report_loader), Some(debug_report))
-            } else {
-                (None, None)
+                    .unwrap()
             };
 
-            let physical_devices = instance
-                .enumerate_physical_devices()
-                .expect("Failed to retrieve physical devices.");
+            (Some(debug_report_loader), Some(debug_report))
+        } else {
+            (None, None)
+        };
 
-            Self {
-                entry,
-                instance,
-                debug_report_loader,
-                debug_report,
-                physical_devices
-            }
+        let physical_devices = unsafe {
+            instance
+                .enumerate_physical_devices()
+                .expect("Failed to retrieve physical devices.")
+        };
+
+        Self {
+            entry,
+            instance,
+            debug_report_loader,
+            debug_report,
+            physical_devices
         }
     }
 

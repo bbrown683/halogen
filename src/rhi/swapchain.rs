@@ -22,6 +22,7 @@ pub struct Swapchain {
     surface_loader : SurfaceLoader,
     surface : vk::SurfaceKHR,
     capabilities : vk::SurfaceCapabilitiesKHR,
+    format : vk::Format,
     formats : Vec<vk::SurfaceFormatKHR>,
     present_modes : Vec<vk::PresentModeKHR>,
     swapchain_loader : SwapchainLoader,
@@ -134,6 +135,7 @@ impl Swapchain {
                 surface_loader,
                 surface,
                 capabilities,
+                format,
                 formats,
                 present_modes,
                 swapchain_loader,
@@ -170,15 +172,15 @@ impl Swapchain {
     /// Presents the image to the screen, using the specified present queue. The present queue can be any queue
     /// graphics, transfer, compute which supports present operations.
     pub fn present(&self) {
+        // TODO: Allow usage of wait semaphores.
+        let present_info = vk::PresentInfoKHR::builder()
+            .image_indices(&[self.current_image])
+            .swapchains(&[self.swapchain])
+            .build();
         unsafe {
-            // TODO: Allow usage of wait semaphores.
-            let present_info = vk::PresentInfoKHR::builder()
-                .image_indices(&[self.current_image])
-                .swapchains(&[self.swapchain])
-                .build();
             // TODO: Use value to validate present status.
             let present_status = self.swapchain_loader.queue_present_khr(
-                self.present_queue.borrow().get_queue(),
+                self.present_queue.borrow().get_queue_raw(),
                 &present_info);
         }
     }
@@ -227,6 +229,7 @@ impl Swapchain {
             self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
             self.swapchain = swapchain;
 
+            self.format = format;
             self.images = self.swapchain_loader
                 .get_swapchain_images_khr(self.swapchain)
                 .unwrap();
@@ -251,6 +254,10 @@ impl Swapchain {
     /// Returns all formats supported by the surface initialized with the Swapchain.
     pub fn get_supported_formats(&self) -> Vec<vk::SurfaceFormatKHR> {
         self.formats.clone()
+    }
+
+    pub fn get_format(&self) -> vk::Format {
+        self.format
     }
 
     /// Returns all present modes supported by the surface initialized with the Swapchain.
