@@ -2,17 +2,15 @@
 name = "halogen"
 version = "0.1.0"
 authors = ["Ben Brown <bbrown683@live.com>"]
-description = "WIP game engine over gfx-hal"
+description = "WIP game engine"
 edition = "2018"
 
 [dependencies]
 alto = "3.0.3"
+ash = "0.26.0"
 clap = "2.32.0"
 directories = "1.0.2"
 flate2 = "1.0.4"
-gfx-hal = { git = "https://github.com/gfx-rs/gfx" }
-gfx-backend-dx12 = { git = "https://github.com/gfx-rs/gfx", optional = true }
-gfx-backend-vulkan = { git = "https://github.com/gfx-rs/gfx" }
 gltf = "0.11.2"
 image = "0.20.0"
 imgui = "0.0.21"
@@ -31,6 +29,3 @@ spirv_headers = "1.3.4"
 tokio = "0.1.11"
 toml = "0.4.8"
 winit = "0.17.2"
-
-[features]
-dx12 = ["gfx-backend-dx12"]

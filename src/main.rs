@@ -1,13 +1,9 @@
 #![feature(extern_crate_item_prelude,range_contains)]
+extern crate ash;
 extern crate alto;
 extern crate clap;
 extern crate directories;
 extern crate flate2;
-extern crate gfx_hal as hal;
-#[cfg(feature="dx12")]
-extern crate gfx_backend_dx12 as back;
-#[cfg(not(feature="dx12"))]
-extern crate gfx_backend_vulkan as back;
 extern crate image;
 extern crate imgui;
 extern crate lewton;
@@ -28,8 +24,8 @@ extern crate toml;
 extern crate winit;
 
 /// Internal module handling the gfx-hal library.
-mod gfx;
-mod util;
+pub mod gfx;
+pub mod util;
 
 use std::fs;
 use std::path;
