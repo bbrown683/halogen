@@ -21,8 +21,6 @@ extern crate specs;
 extern crate spirv_headers;
 extern crate tokio;
 extern crate toml;
-#[cfg(windows)]
-extern crate winapi;
 extern crate winit;
 
 /// Internal module handling the gfx-hal library.

@@ -1,7 +1,8 @@
 use std::cell::RefCell;
-use std::ptr;
+use std::iter;
 use std::rc::Rc;
 use ash::extensions::{Surface as SurfaceLoader, Swapchain as SwapchainLoader};
+use ash::version::DeviceV1_0;
 use ash::vk;
 use super::{Device, Instance, Queue};
 use super::util::select_color_format;
@@ -11,9 +12,13 @@ use super::platform::{create_surface, get_required_instance_extensions};
 pub enum SwapchainCreationError {
     /// Provided presentation queue does not support presentation.
     QueuePresentUnsupported,
+    InvalidImageCount,
 }
 
 pub struct Swapchain {
+    instance : Rc<RefCell<Instance>>,
+    device : Rc<RefCell<Device>>,
+    present_queue : Rc<RefCell<Queue>>,
     surface_loader : SurfaceLoader,
     surface : vk::SurfaceKHR,
     capabilities : vk::SurfaceCapabilitiesKHR,
@@ -21,12 +26,17 @@ pub struct Swapchain {
     present_modes : Vec<vk::PresentModeKHR>,
     swapchain_loader : SwapchainLoader,
     swapchain : vk::SwapchainKHR,
+    acquire_semaphores : Vec<vk::Semaphore>,
     images : Vec<vk::Image>,
+    current_image : u32,
 }
 
 impl Drop for Swapchain {
     fn drop(&mut self) {
         unsafe {
+            for semaphore in self.acquire_semaphores.clone() {
+                self.device.borrow().get_ash_device().destroy_semaphore(semaphore, None);
+            }
             self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
             self.surface_loader.destroy_surface_khr(self.surface, None);
             info!("Dropped Swapchain")
@@ -35,47 +45,50 @@ impl Drop for Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(instance : &Instance,
-               device : &Device,
+    /// Creates a new swapchain with the given surface. This function will only need to be called once.
+    /// Any events that break the existing swapchain `should` call `recreate`.
+    pub fn new(instance : Rc<RefCell<Instance>>,
+               device : Rc<RefCell<Device>>,
                present_queue : Rc<RefCell<Queue>>,
                window : &winit::Window,
-               images : u32) -> Result<Self,SwapchainCreationError> {
+               image_count : u32) -> Result<Self,SwapchainCreationError> {
         unsafe {
+            // Initializes surface entry points and creates one.
             let surface_loader = SurfaceLoader::new(
-                instance.get_ash_entry(),
-                instance.get_ash_instance());
+                instance.borrow().get_ash_entry(),
+                instance.borrow().get_ash_instance());
             let surface = create_surface(
-                instance.get_ash_entry(),
-                instance.get_ash_instance(), window);
+                instance.borrow().get_ash_entry(),
+                instance.borrow().get_ash_instance(), window);
 
+            // Verifies that the device supports presentation.
             if !surface_loader.get_physical_device_surface_support_khr(
-                device.get_physical_device(),
+                device.borrow().get_physical_device(),
                 0,
-                surface.clone()) {
+                surface) {
                 return Err(SwapchainCreationError::QueuePresentUnsupported);
             }
 
+            // Grab surface capabilities, formats, and present modes.
             let capabilities = surface_loader
                 .get_physical_device_surface_capabilities_khr(
-                    device.get_physical_device(),
-                    surface.clone())
+                    device.borrow().get_physical_device(),
+                    surface)
                 .unwrap();
-
             let formats = surface_loader
                 .get_physical_device_surface_formats_khr(
-                    device.get_physical_device(),
-                surface.clone())
+                    device.borrow().get_physical_device(),
+                surface)
                 .unwrap();
-
             let present_modes = surface_loader
                 .get_physical_device_surface_present_modes_khr(
-                    device.get_physical_device(),
-                    surface.clone())
+                    device.borrow().get_physical_device(),
+                    surface)
                 .unwrap();
 
             let swapchain_loader = SwapchainLoader::new(
-                instance.get_ash_instance(),
-                device.get_ash_device());
+                instance.borrow().get_ash_instance(),
+                device.borrow().get_ash_device());
 
             let (format, color_space) = select_color_format(
                 formats.clone(),
@@ -90,37 +103,111 @@ impl Swapchain {
                 .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
                 .image_array_layers(1)
                 .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-                .min_image_count(2)
+                .min_image_count(image_count)
                 .clipped(true)
                 .build();
 
             let swapchain = swapchain_loader
                 .create_swapchain_khr(&swapchain_info, None)
                 .expect("Failed to create swapchain");
+
+            // Initialize our acquire semaphores.
+            let semaphore_info = vk::SemaphoreCreateInfo::builder()
+                .build();
+            let acquire_semaphores = iter::repeat_with(||
+                device
+                    .borrow()
+                    .get_ash_device()
+                    .create_semaphore(&semaphore_info, None)
+                    .expect("Failed to create semaphore"))
+                .take(image_count as _)
+                .collect();
+
             let images = swapchain_loader
                 .get_swapchain_images_khr(swapchain)
                 .unwrap();
-            Ok(Self { surface_loader,
+
+            Ok(Self { instance,
+                device,
+                present_queue,
+                surface_loader,
                 surface,
                 capabilities,
                 formats,
                 present_modes,
                 swapchain_loader,
                 swapchain,
+                acquire_semaphores,
                 images,
+                current_image: 0,
             })
         }
     }
 
+    /// Returns the next image index in the swapchain. This is typically used at the beginning of a render pass.
+    pub fn get_next_image(&mut self) -> u32 {
+        unsafe {
+            let acquire_result = self.swapchain_loader
+                .acquire_next_image_khr(
+                    self.swapchain,
+                    u64::max_value(),
+                    self.acquire_semaphores
+                        .get(self.current_image as usize)
+                        .unwrap()
+                        .clone(),
+                    vk::Fence::null());
+            if acquire_result.is_err() {
+                error!("Failed to acquire image!");
+            } else {
+                self.current_image = acquire_result.unwrap().0;
+            }
+            self.current_image
+        }
+    }
+
+    /// Presents the image to the screen, using the specified present queue. The present queue can be any queue
+    /// graphics, transfer, compute which supports present operations.
     pub fn present(&self) {
+        unsafe {
+            // TODO: Allow usage of wait semaphores.
+            let present_info = vk::PresentInfoKHR::builder()
+                .image_indices(&[self.current_image])
+                .swapchains(&[self.swapchain])
+                .build();
+            // TODO: Use value to validate present status.
+            let present_status = self.swapchain_loader.queue_present_khr(
+                self.present_queue.borrow().get_queue(),
+                &present_info);
+        }
+    }
+
+    /// Recreates the swapchain. This is particularly useful in the event of resizes.
+    pub fn recreate(&self) {
 
     }
 
+    /// Returns the images associated with this Swapchain, used in the creation of a Framebuffer.
     pub fn get_images(&self) -> Vec<vk::Image> {
         self.images.clone()
     }
 
-    pub fn get_extent(&self) -> vk::Extent2D {
-        self.capabilities.current_extent
+    /// Returns the current image index which the swapchain is referring to.
+    pub fn get_current_image(&self) -> u32 {
+        self.current_image
+    }
+
+    /// Returns the capabilities provided by the surface which initialized this Swapchain.
+    pub fn get_capabilities(&self) -> vk::SurfaceCapabilitiesKHR {
+        self.capabilities
+    }
+
+    /// Returns all formats supported by the surface initialized with the Swapchain.
+    pub fn get_supported_formats(&self) -> Vec<vk::SurfaceFormatKHR> {
+        self.formats.clone()
+    }
+
+    /// Returns all present modes supported by the surface initialized with the Swapchain.
+    pub fn get_supported_present_modes(&self) -> Vec<vk::PresentModeKHR> {
+        self.present_modes.clone()
     }
 }

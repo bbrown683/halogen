@@ -1,9 +1,4 @@
-use std::default::Default;
-use std::ffi::{CStr, CString};
-use std::ops::Drop;
-use std::os::raw::{c_char, c_void};
-use std::ptr;
-
+use std::ffi::CString;
 use ash::vk;
 use ash::extensions::{DebugReport, Surface};
 use ash::version::{EntryV1_0, InstanceV1_0};
@@ -50,39 +45,32 @@ impl Instance {
             let entry = ash::Entry::new().unwrap();
 
             let layer_names = [CString::new("VK_LAYER_LUNARG_standard_validation").unwrap()];
-            let layers_names_raw: Vec<*const i8> = layer_names
+            let layer_names_raw: Vec<*const i8> = layer_names
                 .iter()
                 .map(|raw_name| raw_name.as_ptr())
                 .collect();
 
             let extension_names = get_required_instance_extensions();
-            let instance_info = vk::InstanceCreateInfo {
-                s_type: vk::StructureType::INSTANCE_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: Default::default(),
-                p_application_info: &Default::default(),
-                pp_enabled_layer_names: layers_names_raw.as_ptr(),
-                enabled_layer_count: layers_names_raw.len() as u32,
-                pp_enabled_extension_names: extension_names.as_ptr(),
-                enabled_extension_count: extension_names.len() as u32,
-            };
+
+            let instance_info = vk::InstanceCreateInfo::builder()
+                .enabled_extension_names(&extension_names)
+                .enabled_layer_names(&layer_names_raw)
+                .build();
 
             let instance = entry.create_instance(&instance_info, None)
                 .expect("Failed to create vulkan instance.");
 
             // Only enable the report callback on debug builds.
             let (debug_report_loader, debug_report) = if cfg!(debug_assertions) {
-                let debug_info = vk::DebugReportCallbackCreateInfoEXT {
-                    s_type: vk::StructureType::DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-                    p_next: ptr::null(),
-                    flags: vk::DebugReportFlagsEXT::ERROR
+                let debug_info = vk::DebugReportCallbackCreateInfoEXT::builder()
+                    .flags(vk::DebugReportFlagsEXT::ERROR
                         | vk::DebugReportFlagsEXT::WARNING
                         | vk::DebugReportFlagsEXT::DEBUG
                         | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
-                        | vk::DebugReportFlagsEXT::INFORMATION,
-                    pfn_callback: Some(debug_callback),
-                    p_user_data: ptr::null_mut(),
-                };
+                        | vk::DebugReportFlagsEXT::INFORMATION)
+                    .pfn_callback(Some(debug_callback))
+                    .build();
+
                 let debug_report_loader = DebugReport::new(&entry, &instance);
                 let debug_report = debug_report_loader.create_debug_report_callback_ext(
                     &debug_info,

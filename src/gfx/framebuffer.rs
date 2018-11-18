@@ -23,7 +23,8 @@ impl Drop for Framebuffer {
 impl Framebuffer {
     pub fn new(device : Rc<RefCell<Device>>,
                render_pass : &RenderPass,
-               image : vk::Image, extent : vk::Extent2D) -> Self {
+               image : vk::Image,
+               extent : vk::Extent2D) -> Self {
         unsafe {
             let subresource_range = vk::ImageSubresourceRange::builder()
                 .aspect_mask(vk::ImageAspectFlags::COLOR)

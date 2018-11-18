@@ -8,7 +8,7 @@ use crate::util::CapturedEvent;
 
 /// The highest level of the gfx module, the `Renderer` manages all render state.
 pub struct Renderer {
-    instance : Option<Instance>,
+    instance : Option<Rc<RefCell<Instance>>>,
     device : Option<Rc<RefCell<Device>>>,
     compute_queue : Option<Rc<RefCell<Queue>>>,
     graphics_queue : Option<Rc<RefCell<Queue>>>,
@@ -43,73 +43,83 @@ impl Drop for Renderer {
 impl CapturedEvent for Renderer {
     /// When this event is captured, the swapchain is recreated, and regenerates all framebuffers from the swapchain images.
     fn on_resize(&mut self, _size : LogicalSize) {
-
+        /* TODO: Implement resize handling.
+        self.swapchain.as_ref().unwrap().recreate();
+        self.framebuffers.as_mut().unwrap().clear();
+        for image in self.swapchain.as_ref().unwrap().get_images() {
+            self.framebuffers.as_mut().unwrap().push(Framebuffer::new(
+                Rc::clone(&self.device.clone().unwrap()),
+                &self.default_render_pass.as_ref().unwrap(),
+                image,
+                self.swapchain.as_ref().unwrap().get_capabilities().current_extent));
+        }
+        */
     }
 }
 
 impl Renderer {
     /// Initializes the renderer for the specified window.
     pub fn new(window : &winit::Window) -> Self {
-        unsafe {
-            info!("Initializing Renderer.");
-            // TODO: Properly handle errors here and present them to the output.
+        info!("Initializing Renderer.");
+        // TODO: Properly handle errors here and present them to the output.
 
-            let instance = Instance::new();
-            let device = Rc::new(RefCell::new(Device::new(&instance)
-                .ok()
-                .unwrap()));
+        let instance = Rc::new(RefCell::new(Instance::new()));
+        let device = Rc::new(RefCell::new(Device::new(&instance.borrow())
+            .ok()
+            .unwrap()));
 
-            // Create our queues.
-            let compute_queue = Rc::new(RefCell::new(Queue::new(
+        // Create our queues.
+        let compute_queue = Rc::new(RefCell::new(Queue::new(
+            Rc::clone(&device),
+            device.borrow().get_compute_queue_index())));
+        let graphics_queue = Rc::new(RefCell::new(Queue::new(
+            Rc::clone(&device),
+            device.borrow().get_graphics_queue_index())));
+        let transfer_queue = Rc::new(RefCell::new(Queue::new(
+            Rc::clone(&device),
+            device.borrow().get_transfer_queue_index())));
+
+        // Create the swapchain.
+        let swapchain = Swapchain::new(
+            Rc::clone(&instance),
+            Rc::clone(&device),
+            Rc::clone(&graphics_queue),
+            window,
+            2).ok()
+            .unwrap();
+
+        let default_render_pass = RenderPass::new(
+            Rc::clone(&device));
+
+        // Grab the swapchain images to create the framebuffers.
+        let mut framebuffers = Vec::<Framebuffer>::new();
+        for image in swapchain.get_images() {
+            framebuffers.push(Framebuffer::new(
                 Rc::clone(&device),
-                device.borrow().get_compute_queue_index())));
-            let graphics_queue = Rc::new(RefCell::new(Queue::new(
-                Rc::clone(&device),
-                device.borrow().get_graphics_queue_index())));
-            let transfer_queue = Rc::new(RefCell::new(Queue::new(
-                Rc::clone(&device),
-                device.borrow().get_transfer_queue_index())));
+                &default_render_pass,
+                image,
+                swapchain.get_capabilities().current_extent
+            ));
+        }
 
-            // Create the swapchain.
-            let swapchain = Swapchain::new(
-                &instance,
-                &device.borrow(),
-                Rc::clone(&graphics_queue),
-                window,
-                2).ok()
-                .unwrap();
-
-            let default_render_pass = RenderPass::new(
-                Rc::clone(&device));
-
-            // Grab the swapchain images to create the framebuffers.
-            let mut framebuffers = Vec::<Framebuffer>::new();
-            for image in swapchain.get_images() {
-                framebuffers.push(Framebuffer::new(
-                    Rc::clone(&device),
-                    &default_render_pass,
-                    image,
-                    swapchain.get_extent()
-                ));
-            }
-
-            info!("Renderer has been initialized.");
-            Self { instance: Some(instance),
-                device: Some(device),
-                compute_queue: Some(compute_queue),
-                graphics_queue: Some(graphics_queue),
-                transfer_queue: Some(transfer_queue),
-                swapchain: Some(swapchain),
-                default_render_pass: Some(default_render_pass),
-                framebuffers: Some(framebuffers)
-            }
+        info!("Renderer has been initialized.");
+        Self {
+            instance: Some(instance),
+            device: Some(device),
+            compute_queue: Some(compute_queue),
+            graphics_queue: Some(graphics_queue),
+            transfer_queue: Some(transfer_queue),
+            swapchain: Some(swapchain),
+            default_render_pass: Some(default_render_pass),
+            framebuffers: Some(framebuffers)
         }
     }
 
     pub fn begin_frame(&mut self) {
+        let next_image = &self.swapchain.as_mut().unwrap().get_next_image();
     }
 
-    pub fn end_frame(&mut self) {
-
+    pub fn end_frame(&self) {
+        self.swapchain.as_ref().unwrap().present();
     }
 }

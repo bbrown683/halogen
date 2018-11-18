@@ -2,7 +2,7 @@
 name = "halogen"
 version = "0.1.0"
 authors = ["Ben Brown <bbrown683@live.com>"]
-description = "WIP game engine over gfx-hal"
+description = "WIP game engine"
 edition = "2018"
 
 [dependencies]
@@ -29,9 +29,3 @@ spirv_headers = "1.3.4"
 tokio = "0.1.11"
 toml = "0.4.8"
 winit = "0.17.2"
-
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.6", features = ["windef"] }
-
-[features]
-vk_1_1 = []

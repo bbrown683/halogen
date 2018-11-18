@@ -1,9 +1,4 @@
 use std::cell::RefCell;
-use std::default::Default;
-use std::ffi::{CStr, CString};
-use std::ops::Drop;
-use std::os::raw::{c_char, c_void};
-use std::ptr;
 use std::rc::Rc;
 use ash::extensions::Swapchain;
 use ash::version::{InstanceV1_0, DeviceV1_0};
@@ -16,6 +11,9 @@ pub enum DeviceCreationError {
 
 pub struct Device {
     physical_device : vk::PhysicalDevice,
+    properties : vk::PhysicalDeviceProperties,
+    limits : vk::PhysicalDeviceLimits,
+    memory_properties : vk::PhysicalDeviceMemoryProperties,
     device : ash::Device,
     compute_index : u32,
     graphics_index : u32,
@@ -36,6 +34,17 @@ impl Device {
     pub fn new(instance: &Instance) -> Result<Self,DeviceCreationError> {
         unsafe {
             let physical_device = instance.select_primary_physical_device();
+            let properties = instance
+                .get_ash_instance()
+                .get_physical_device_properties(physical_device);
+            let features = instance
+                .get_ash_instance()
+                .get_physical_device_features(physical_device);
+            let limits = properties.limits;
+            let memory_properties = instance
+                .get_ash_instance()
+                .get_physical_device_memory_properties(physical_device);
+
             let queue_families = instance
                 .get_ash_instance()
                 .get_physical_device_queue_family_properties(physical_device);
@@ -86,6 +95,9 @@ impl Device {
                 .unwrap();
             Ok(Self {
                 physical_device,
+                properties,
+                limits,
+                memory_properties,
                 device,
                 compute_index,
                 graphics_index,
@@ -99,7 +111,7 @@ impl Device {
     }
 
     pub fn get_physical_device(&self) -> vk::PhysicalDevice {
-        self.physical_device.clone()
+        self.physical_device
     }
 
     pub fn get_compute_queue_index(&self) -> u32 {
@@ -112,5 +124,17 @@ impl Device {
 
     pub fn get_transfer_queue_index(&self) -> u32 {
         self.transfer_index
+    }
+
+    pub fn get_properties(&self) -> vk::PhysicalDeviceProperties {
+        self.properties
+    }
+
+    pub fn get_limits(&self) -> vk::PhysicalDeviceLimits {
+        self.limits
+    }
+
+    pub fn get_memory_properties(&self) -> vk::PhysicalDeviceMemoryProperties {
+        self.memory_properties
     }
 }
