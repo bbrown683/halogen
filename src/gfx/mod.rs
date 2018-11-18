@@ -23,4 +23,5 @@ use self::device::{Device, DeviceCreationError};
 use self::framebuffer::Framebuffer;
 use self::instance::Instance;
 use self::queue::Queue;
+use self::pass::RenderPass;
 use self::swapchain::{Swapchain, SwapchainCreationError};

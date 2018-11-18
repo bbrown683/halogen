@@ -116,7 +116,11 @@ impl Swapchain {
 
     }
 
-    pub fn get_images(&self) -> &Vec<vk::Image> {
-        &self.images
+    pub fn get_images(&self) -> Vec<vk::Image> {
+        self.images.clone()
+    }
+
+    pub fn get_extent(&self) -> vk::Extent2D {
+        self.capabilities.current_extent
     }
 }

@@ -3,7 +3,7 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{Device, Framebuffer, Instance, Swapchain, Queue};
+use super::{Device, Framebuffer, Instance, RenderPass, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
 /// The highest level of the gfx module, the `Renderer` manages all render state.
@@ -14,6 +14,7 @@ pub struct Renderer {
     graphics_queue : Option<Rc<RefCell<Queue>>>,
     transfer_queue : Option<Rc<RefCell<Queue>>>,
     swapchain : Option<Swapchain>,
+    default_render_pass : Option<RenderPass>,
     framebuffers : Option<Vec<Framebuffer>>,
 }
 
@@ -21,6 +22,8 @@ impl Drop for Renderer {
     fn drop(&mut self) {
         self.framebuffers.take();
         debug_assert!(self.framebuffers.is_none());
+        self.default_render_pass.take();
+        debug_assert!(self.default_render_pass.is_none());
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
         self.compute_queue.take();
@@ -76,12 +79,17 @@ impl Renderer {
                 2).ok()
                 .unwrap();
 
+            let default_render_pass = RenderPass::new(
+                Rc::clone(&device));
+
             // Grab the swapchain images to create the framebuffers.
             let mut framebuffers = Vec::<Framebuffer>::new();
             for image in swapchain.get_images() {
                 framebuffers.push(Framebuffer::new(
                     Rc::clone(&device),
-                    image
+                    &default_render_pass,
+                    image,
+                    swapchain.get_extent()
                 ));
             }
 
@@ -92,6 +100,7 @@ impl Renderer {
                 graphics_queue: Some(graphics_queue),
                 transfer_queue: Some(transfer_queue),
                 swapchain: Some(swapchain),
+                default_render_pass: Some(default_render_pass),
                 framebuffers: Some(framebuffers)
             }
         }
