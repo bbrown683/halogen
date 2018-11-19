@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::default::Default;
 use std::rc::Rc;
 use ash::version::DeviceV1_0;
 use ash::vk;
@@ -22,6 +23,7 @@ impl RenderPass {
         let color_attachment = vk::AttachmentDescription::builder()
             .format(vk::Format::B8G8R8A8_SRGB)
             .samples(vk::SampleCountFlags::TYPE_1)
+            .initial_layout(vk::ImageLayout::UNDEFINED)
             .final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
             .load_op(vk::AttachmentLoadOp::CLEAR)
             .store_op(vk::AttachmentStoreOp::STORE)
@@ -32,23 +34,19 @@ impl RenderPass {
             .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
             .build();
 
-        let subpass = vk::SubpassDescription::builder()
-            .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-            .color_attachments(&[color_reference])
-            .build();
 
-        let dependency = vk::SubpassDependency::builder()
-            .dst_subpass(0)
-            .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_READ |
-                vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
-            .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-            .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-            .build();
+        // Builder does not work in release for some reason. Manually construct.
+        let subpass = vk::SubpassDescription {
+            pipeline_bind_point: vk::PipelineBindPoint::GRAPHICS,
+            p_color_attachments: &color_reference,
+            color_attachment_count: 1,
+            ..
+            Default::default()
+        };
 
         let render_pass_info = vk::RenderPassCreateInfo::builder()
             .attachments(&[color_attachment])
             .subpasses(&[subpass])
-            .dependencies(&[dependency])
             .build();
 
         let render_pass = unsafe {
