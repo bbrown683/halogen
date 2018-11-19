@@ -21,8 +21,8 @@ pub struct Swapchain {
     present_queue : Rc<RefCell<Queue>>,
     surface_loader : SurfaceLoader,
     surface : vk::SurfaceKHR,
+    surface_format : vk::SurfaceFormatKHR,
     capabilities : vk::SurfaceCapabilitiesKHR,
-    format : vk::Format,
     formats : Vec<vk::SurfaceFormatKHR>,
     present_modes : Vec<vk::PresentModeKHR>,
     swapchain_loader : SwapchainLoader,
@@ -98,15 +98,15 @@ impl Swapchain {
             instance.borrow().get_ash_instance(),
             device.borrow().get_ash_device());
 
-        let (format, color_space) = select_color_format(
+        let surface_format = select_color_format(
             formats.clone(),
             vk::Format::B8G8R8A8_SRGB);
 
         let swapchain_info = vk::SwapchainCreateInfoKHR::builder()
             .surface(surface)
             .image_extent(capabilities.current_extent)
-            .image_format(format)
-            .image_color_space(color_space)
+            .image_format(surface_format.format)
+            .image_color_space(surface_format.color_space)
             .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
             .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
             .image_array_layers(1)
@@ -146,8 +146,8 @@ impl Swapchain {
             present_queue,
             surface_loader,
             surface,
+            surface_format,
             capabilities,
-            format,
             formats,
             present_modes,
             swapchain_loader,
@@ -216,7 +216,7 @@ impl Swapchain {
                 .unwrap();
         }
 
-        let (format, color_space) = select_color_format(
+        self.surface_format = select_color_format(
             self.formats.clone(),
             vk::Format::B8G8R8A8_SRGB);
 
@@ -224,8 +224,8 @@ impl Swapchain {
             .surface(self.surface)
             .old_swapchain(self.swapchain)
             .image_extent(self.capabilities.current_extent)
-            .image_format(format)
-            .image_color_space(color_space)
+            .image_format(self.surface_format.format)
+            .image_color_space(self.surface_format.color_space)
             .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
             .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
             .image_array_layers(1)
@@ -242,7 +242,6 @@ impl Swapchain {
             (new_swapchain)
         };
 
-        self.format = format;
         self.images = unsafe {
             self.swapchain_loader
                 .get_swapchain_images_khr(self.swapchain)
@@ -270,8 +269,9 @@ impl Swapchain {
         self.formats.clone()
     }
 
-    pub fn get_format(&self) -> vk::Format {
-        self.format
+    /// Returns the surface format which was selected for the swapchain.
+    pub fn get_surface_format(&self) -> vk::SurfaceFormatKHR {
+        self.surface_format
     }
 
     /// Returns all present modes supported by the surface initialized with the Swapchain.

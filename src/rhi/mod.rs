@@ -2,8 +2,6 @@ pub mod cmd;
 pub mod debug;
 pub mod device;
 pub mod framebuffer;
-/// Provides initializers for commonly used Vulkan structures.
-pub mod init;
 pub mod instance;
 pub mod pass;
 /// Platform-specific helper functions.

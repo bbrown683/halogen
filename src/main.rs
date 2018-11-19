@@ -24,7 +24,6 @@ fn main() {
 
     let handle = log4rs::init_config(config).unwrap();
 
-
     let mut events_loop = winit::EventsLoop::new();
     let window = winit::WindowBuilder::new()
         .with_dimensions(winit::dpi::LogicalSize::new(1024 as _, 768 as _))
@@ -42,15 +41,6 @@ fn main() {
             if let winit::Event::WindowEvent { event, .. } = event {
                 match event {
                     WindowEvent::CloseRequested => running = false,
-                    WindowEvent::CursorMoved {
-                            device_id, position, modifiers
-                    } => (),
-                    WindowEvent::KeyboardInput {
-                        device_id, input
-                    } => renderer.on_keyboard_input(input),
-                    WindowEvent::MouseInput {
-                        device_id, state, button, modifiers
-                    } => renderer.on_mouse_input(button),
                     WindowEvent::Resized(size) => renderer.on_resize(size),
                     _ => (),
                 }

@@ -2,14 +2,14 @@ use ash::version::InstanceV1_0;
 use ash::vk;
 
 /// Attempts to select the preferred format provided. If it cannot, it will select the first format it can find.
-pub fn select_color_format(formats : Vec<vk::SurfaceFormatKHR>, preferred : vk::Format) -> (vk::Format, vk::ColorSpaceKHR) {
+pub fn select_color_format(formats : Vec<vk::SurfaceFormatKHR>, preferred : vk::Format) -> vk::SurfaceFormatKHR {
     let returned_format = formats
         .iter()
         .find(|format| {
             format.format == preferred
         }).or(formats.get(0))
         .unwrap();
-    (returned_format.format, returned_format.color_space)
+    returned_format.clone()
 }
 
 /// Returns the optimal depth-stencil format, if one exists. Returns `Some(vk::Format)` when a format exists, and None if
@@ -31,3 +31,36 @@ pub fn select_depth_stencil_format(instance : ash::Instance,
     }
     None
 }
+
+pub fn find_memory_type_index(memory_req: &vk::MemoryRequirements,
+                             memory_prop: &vk::PhysicalDeviceMemoryProperties,
+                             flags: vk::MemoryPropertyFlags) -> Option<u32> {
+    let mut memory_type_bits = memory_req.memory_type_bits;
+    for (index, ref memory_type) in memory_prop.memory_types.iter().enumerate() {
+        if memory_type_bits & 1 == 1 {
+            return Some(index as u32);
+        }
+        memory_type_bits = memory_type_bits >> 1;
+    }
+    None
+}
+
+/*
+pub fn get_max_multisampling_value(limits : vk::PhysicalDeviceLimits) -> vk::SampleCountFlags {
+    let minimum_samples = limits.framebuffer_color_sample_counts.min(limits.framebuffer_depth_sample_counts);
+    if minimum_samples & vk::SampleCountFlags::TYPE_64 = vk::SampleCountFlags::TYPE_64 {
+        return vk::SampleCountFlags::TYPE_64
+    } else if minimum_samples & vk::SampleCountFlags::TYPE_32 {
+        return vk::SampleCountFlags::TYPE_32
+    } else if vk::SampleCountFlags::TYPE_16 {
+        return vk::SampleCountFlags::TYPE_16
+    } else if vk::SampleCountFlags::TYPE_8 {
+        return vk::SampleCountFlags::TYPE_8
+    } else if vk::SampleCountFlags::TYPE_4 {
+        return vk::SampleCountFlags::TYPE_4
+    } else if vk::SampleCountFlags::TYPE_2 {
+        return vk::SampleCountFlags::TYPE_2
+    }
+    vk::SampleCountFlags::TYPE_1
+}
+*/

@@ -133,8 +133,8 @@ impl Renderer {
     pub fn begin_frame(&mut self) {
         let next_image = &self.swapchain.as_mut().unwrap().get_next_image();
         let cmd_state = CmdState {
-            format : self.swapchain.as_ref().unwrap().get_format(),
-            extent : self.swapchain.as_ref().unwrap().get_capabilities().current_extent
+            format: self.swapchain.as_ref().unwrap().get_surface_format().format,
+            extent: self.swapchain.as_ref().unwrap().get_capabilities().current_extent
         };
 
         self.graphics_buffer

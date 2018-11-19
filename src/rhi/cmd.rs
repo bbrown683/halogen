@@ -4,6 +4,7 @@ use ash::version::DeviceV1_0;
 use ash::vk;
 use super::{Device, Framebuffer, Queue, RenderPass};
 
+/// Specifices the state which will be used for Command Buffers.
 pub struct CmdState {
     pub format : vk::Format,
     pub extent : vk::Extent2D,
@@ -96,12 +97,12 @@ impl CmdBuffer {
 
         self.recording = true;
 
-        let clear_value = vk::ClearValue {
-            color: vk::ClearColorValue { float32: [0.39, 0.58, 0.93, 1.0] }
-        };
+        let clear_values = vec![
+            vk::ClearValue { color: vk::ClearColorValue { float32: [0.39, 0.58, 0.94, 1.0] } },
+            vk::ClearValue { depth_stencil: vk::ClearDepthStencilValue { depth: 1.0, stencil: 0 } }];
 
         let begin_pass_info = vk::RenderPassBeginInfo::builder()
-            .clear_values(&[clear_value])
+            .clear_values(clear_values.as_slice())
             .framebuffer(framebuffer.get_framebuffer_raw())
             .render_pass(render_pass.get_render_pass_raw())
             .render_area(vk::Rect2D::builder()
