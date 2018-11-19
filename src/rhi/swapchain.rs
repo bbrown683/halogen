@@ -76,22 +76,22 @@ impl Swapchain {
 
         // Grab surface capabilities, formats, and present modes.
         let (capabilities, formats, present_modes) = unsafe {
-            let _capabilities = surface_loader
+            let capabilities = surface_loader
                 .get_physical_device_surface_capabilities_khr(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
-            let _formats = surface_loader
+            let formats = surface_loader
                 .get_physical_device_surface_formats_khr(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
-            let _present_modes = surface_loader
+            let present_modes = surface_loader
                 .get_physical_device_surface_present_modes_khr(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
-            (_capabilities, _formats, _present_modes)
+            (capabilities, formats, present_modes)
         };
 
         let swapchain_loader = SwapchainLoader::new(

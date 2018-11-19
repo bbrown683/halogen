@@ -12,7 +12,13 @@ pub unsafe extern "system" fn debug_callback(
     p_message : *const c_char,
     p_user_data : *mut c_void,
 ) -> u32 {
-    // TODO: Use info!, debug!, etc for logging specific messages.
-    println!("{:?} - {:?}", flags, CStr::from_ptr(p_message));
+    match flags {
+        vk::DebugReportFlagsEXT::ERROR => error!("{:?}", CStr::from_ptr(p_message)),
+        vk::DebugReportFlagsEXT::WARNING => warn!("{:?}", CStr::from_ptr(p_message)),
+        vk::DebugReportFlagsEXT::DEBUG => debug!("{:?}", CStr::from_ptr(p_message)),
+        vk::DebugReportFlagsEXT::INFORMATION => info!("{:?}", CStr::from_ptr(p_message)),
+        vk::DebugReportFlagsEXT::PERFORMANCE_WARNING => trace!("{:?}", CStr::from_ptr(p_message)),
+        _ => (),
+    }
     vk::FALSE
 }

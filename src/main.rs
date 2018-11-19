@@ -94,6 +94,8 @@ fn main() {
     let mut renderer = rhi::Renderer::new(&window);
 
     let mut running = true;
+    &renderer.begin_frame();
+    &renderer.end_frame();
     while running {
         events_loop.poll_events(|event| {
             if let winit::Event::WindowEvent { event, .. } = event {
@@ -113,8 +115,5 @@ fn main() {
                 }
             }
         });
-
-//        &renderer.begin_frame();
-//        &renderer.end_frame();
     }
 }

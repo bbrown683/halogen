@@ -51,6 +51,19 @@ impl Instance {
 
         let extension_names = get_required_instance_extensions();
 
+        // Enable validation layer only on debug builds.
+        /*
+        let instance_info = if cfg!(debug_assertions) {
+            vk::InstanceCreateInfo::builder()
+                .enabled_extension_names(&extension_names)
+                .enabled_layer_names(&layer_names_raw)
+                .build()
+        } else {
+            vk::InstanceCreateInfo::builder()
+                .enabled_extension_names(&extension_names)
+                .build()
+        };
+        */
         let instance_info = vk::InstanceCreateInfo::builder()
             .enabled_extension_names(&extension_names)
             .enabled_layer_names(&layer_names_raw)

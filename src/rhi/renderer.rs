@@ -3,7 +3,8 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{Device, Framebuffer, Instance, RenderPass, Swapchain, Queue};
+use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, Instance, RenderPass,
+            Swapchain, Queue};
 use crate::util::CapturedEvent;
 
 /// The highest level of the rhi module, the `Renderer` manages all render state.
@@ -16,10 +17,16 @@ pub struct Renderer {
     swapchain : Option<Swapchain>,
     default_render_pass : Option<RenderPass>,
     framebuffers : Option<Vec<Framebuffer>>,
+    graphics_pool : Option<Rc<RefCell<CmdPool>>>,
+    graphics_buffer : Option<CmdBuffer>,
 }
 
 impl Drop for Renderer {
     fn drop(&mut self) {
+        self.graphics_buffer.take();
+        debug_assert!(self.graphics_buffer.is_none());
+        self.graphics_pool.take();
+        debug_assert!(self.graphics_pool.is_none());
         self.framebuffers.take();
         debug_assert!(self.framebuffers.is_none());
         self.default_render_pass.take();
@@ -100,6 +107,14 @@ impl Renderer {
             ));
         }
 
+        let graphics_pool = Rc::new(RefCell::new(CmdPool::new(
+            Rc::clone(&device),
+            &graphics_queue.borrow())));
+
+        let graphics_buffer = CmdBuffer::new(
+            Rc::clone(&device),
+            Rc::clone(&graphics_pool));
+
         info!("Renderer has been initialized.");
         Self {
             instance: Some(instance),
@@ -109,15 +124,34 @@ impl Renderer {
             transfer_queue: Some(transfer_queue),
             swapchain: Some(swapchain),
             default_render_pass: Some(default_render_pass),
-            framebuffers: Some(framebuffers)
+            framebuffers: Some(framebuffers),
+            graphics_pool: Some(graphics_pool),
+            graphics_buffer: Some(graphics_buffer),
         }
     }
 
     pub fn begin_frame(&mut self) {
         let next_image = &self.swapchain.as_mut().unwrap().get_next_image();
+        let cmd_state = CmdState {
+            format : self.swapchain.as_ref().unwrap().get_format(),
+            extent : self.swapchain.as_ref().unwrap().get_capabilities().current_extent
+        };
+
+        self.graphics_buffer
+            .as_mut()
+            .unwrap()
+            .record_graphics(
+                cmd_state,
+                self.default_render_pass.as_ref().unwrap(),
+                self.framebuffers.as_ref().unwrap().get(next_image.clone() as usize).unwrap());
     }
 
     pub fn end_frame(&self) {
+        self.graphics_queue
+            .as_ref()
+            .unwrap()
+            .borrow()
+            .submit(self.graphics_buffer.as_ref().unwrap());
         self.swapchain.as_ref().unwrap().present();
     }
 }

@@ -6,12 +6,12 @@ use winit::os::unix::WindowExt;
 
 pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, window : &winit::Window)
     -> vk::SurfaceKHR {
-    let x11_display = window.get_xlib_display().unwrap();
-    let x11_window = window.get_xlib_window().unwrap();
+    let xlib_display = window.get_xlib_display().unwrap();
+    let xlib_window = window.get_xlib_window().unwrap();
     let xlib_create_info = vk::XlibSurfaceCreateInfoKHR::builder()
-	.window(x11_window as vk::Window)
-	.dpy(x11_display as *mut vk::Display)
-	.build();
+        .dpy(xlib_display as *mut vk::Display)
+        .window(xlib_window as vk::Window)
+        .build();
 
     let xlib_surface_loader = XlibSurface::new(entry, instance);
     unsafe {

@@ -33,6 +33,7 @@ impl RenderPass {
             .build();
 
         let subpass = vk::SubpassDescription::builder()
+            .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
             .color_attachments(&[color_reference])
             .build();
 

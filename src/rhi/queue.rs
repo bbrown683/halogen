@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use ash::vk;
 use ash::version::{DeviceV1_0};
-use super::Device;
+use super::{CmdBuffer, Device};
 
 pub struct Queue {
     device : Rc<RefCell<Device>>,
@@ -28,6 +28,24 @@ impl Queue {
                 .get_ash_device()
                 .get_device_queue(family_index, 0);
             Self { device, queue, family_index }
+        }
+    }
+
+    pub fn submit(&self, cmd_buffer : &CmdBuffer) {
+        let submit_info = vk::SubmitInfo::builder()
+            .command_buffers(&[cmd_buffer.get_cmd_buffer_raw()])
+            .build();
+        unsafe {
+            self.device
+                .borrow()
+                .get_ash_device()
+                .queue_submit(self.queue, &[submit_info], cmd_buffer.get_fence_raw())
+                .expect("Failed to submit command buffer.");
+            self.device
+                .borrow()
+                .get_ash_device()
+                .wait_for_fences(&[cmd_buffer.get_fence_raw()], true, u64::max_value())
+                .unwrap();
         }
     }
 

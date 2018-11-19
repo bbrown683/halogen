@@ -34,20 +34,20 @@ impl Device {
     pub fn new(instance: &Instance) -> Result<Self,DeviceCreationError> {
         let physical_device = instance.select_primary_physical_device();
         let (properties, features, limits, memory_properties, queue_families) = unsafe {
-            let _properties = instance
+            let properties = instance
                 .get_ash_instance()
                 .get_physical_device_properties(physical_device);
-            let _features = instance
+            let features = instance
                 .get_ash_instance()
                 .get_physical_device_features(physical_device);
-            let _limits = _properties.limits;
-            let _memory_properties = instance
+            let limits = properties.limits;
+            let memory_properties = instance
                 .get_ash_instance()
                 .get_physical_device_memory_properties(physical_device);
-            let _queue_families = instance
+            let queue_families = instance
                 .get_ash_instance()
                 .get_physical_device_queue_family_properties(physical_device);
-            (_properties, _features, _limits, _memory_properties, _queue_families)
+            (properties, features, limits, memory_properties, queue_families)
         };
 
         let mut compute_index = 0;
