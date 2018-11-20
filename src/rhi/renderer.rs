@@ -43,7 +43,7 @@ impl Drop for Renderer {
         debug_assert!(self.device.is_none());
         self.instance.take();
         debug_assert!(self.instance.is_none());
-        info!("Dropped Renderer.");
+        info!("Dropped Renderer")
     }
 }
 

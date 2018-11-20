@@ -34,8 +34,8 @@ impl Drop for Instance {
                     self.debug_report.take().unwrap(), None);
             }
             self.instance.destroy_instance(None);
-            info!("Dropped Instance.")
         }
+        info!("Dropped Instance.")
     }
 }
 

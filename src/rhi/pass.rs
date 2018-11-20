@@ -28,14 +28,7 @@ impl RenderPass {
             .store_op(vk::AttachmentStoreOp::STORE)
             .build();
 
-        let depth_attachment = vk::AttachmentDescription::builder()
-            .format(vk::Format::D32_SFLOAT)
-            .samples(vk::SampleCountFlags::TYPE_1)
-            .final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-            .load_op(vk::AttachmentLoadOp::CLEAR)
-            .build();
-
-        let attachments = vec![color_attachment, depth_attachment];
+        let attachments = vec![color_attachment];
 
         // TODO: create depth stencil reference.
         let color_reference = vec![vk::AttachmentReference::builder()
@@ -43,16 +36,10 @@ impl RenderPass {
             .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
             .build()];
 
-        let depth_reference = vk::AttachmentReference::builder()
-            .attachment(1)
-            .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-            .build();
-
         // TODO: add depth stencil attachment to subpass.
         let subpass = vk::SubpassDescription::builder()
             .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
             .color_attachments(color_reference.as_slice())
-            .depth_stencil_attachment(&depth_reference)
             .build();
 
         let render_pass_info = vk::RenderPassCreateInfo::builder()

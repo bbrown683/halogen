@@ -13,10 +13,8 @@ pub struct Queue {
 
 impl Drop for Queue {
     fn drop(&mut self) {
-        unsafe {
-            self.device.borrow().get_ash_device().queue_wait_idle(self.queue).unwrap();
-            info!("Dropped Queue")
-        }
+        unsafe { self.device.borrow().get_ash_device().queue_wait_idle(self.queue).unwrap(); }
+        info!("Dropped Queue")
     }
 }
 

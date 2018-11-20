@@ -4,6 +4,7 @@ pub mod device;
 pub mod framebuffer;
 pub mod instance;
 pub mod pass;
+pub mod pipeline;
 /// Platform-specific helper functions.
 pub mod platform;
 /// Operations for a queue, such as submitting graphics, compute, or transfer operations for execution by the GPU.

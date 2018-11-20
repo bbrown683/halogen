@@ -25,8 +25,8 @@ impl Drop for Device {
         unsafe {
             self.device.device_wait_idle().unwrap();
             self.device.destroy_device(None);
-            info!("Dropped Device")
         }
+        info!("Dropped Device")
     }
 }
 
