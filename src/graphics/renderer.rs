@@ -3,11 +3,11 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, Instance, RenderPass,
+use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, Instance, Pipeline, RenderPass,
             Swapchain, Queue};
 use crate::util::CapturedEvent;
 
-/// The highest level of the rhi module, the `Renderer` manages all render state.
+/// The highest level of the graphics module, the `Renderer` manages all render state.
 pub struct Renderer {
     instance : Option<Rc<RefCell<Instance>>>,
     device : Option<Rc<RefCell<Device>>>,
@@ -16,6 +16,7 @@ pub struct Renderer {
     transfer_queue : Option<Rc<RefCell<Queue>>>,
     swapchain : Option<Swapchain>,
     default_render_pass : Option<RenderPass>,
+    default_graphics_pipeline : Option<Pipeline>,
     framebuffers : Option<Vec<Framebuffer>>,
     graphics_pool : Option<Rc<RefCell<CmdPool>>>,
     graphics_buffer : Option<CmdBuffer>,
@@ -29,6 +30,8 @@ impl Drop for Renderer {
         debug_assert!(self.graphics_pool.is_none());
         self.framebuffers.take();
         debug_assert!(self.framebuffers.is_none());
+        self.default_graphics_pipeline.take();
+        debug_assert!(self.default_graphics_pipeline.is_none());
         self.default_render_pass.take();
         debug_assert!(self.default_render_pass.is_none());
         self.swapchain.take();
@@ -68,7 +71,10 @@ impl Renderer {
         info!("Initializing Renderer.");
         // TODO: Properly handle errors here and present them to the output.
 
-        let instance = Rc::new(RefCell::new(Instance::new()));
+        let instance = Rc::new(RefCell::new(Instance::new()
+            .ok()
+            .unwrap()));
+
         let device = Rc::new(RefCell::new(Device::new(&instance.borrow())
             .ok()
             .unwrap()));
@@ -95,6 +101,12 @@ impl Renderer {
 
         let default_render_pass = RenderPass::new(
             Rc::clone(&device));
+
+        let default_graphics_pipeline = Pipeline::new(
+            Rc::clone(&device),
+            &default_render_pass,
+            swapchain.get_capabilities().current_extent
+        );
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();
@@ -124,6 +136,7 @@ impl Renderer {
             transfer_queue: Some(transfer_queue),
             swapchain: Some(swapchain),
             default_render_pass: Some(default_render_pass),
+            default_graphics_pipeline : Some(default_graphics_pipeline),
             framebuffers: Some(framebuffers),
             graphics_pool: Some(graphics_pool),
             graphics_buffer: Some(graphics_buffer),

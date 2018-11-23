@@ -6,7 +6,10 @@ description = "WIP game engine"
 edition = "2018"
 
 [dependencies]
+alto = "3.0.3"
 ash = "0.26.0"
+lewton = "0.9.3"
 log = "0.4.6"
 log4rs = "0.8.1"
+nalgebra = "0.16.10"
 winit = "0.17.2"

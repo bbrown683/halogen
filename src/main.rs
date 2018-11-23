@@ -1,11 +1,16 @@
 #![feature(range_contains)]
+extern crate alto;
 extern crate ash;
+extern crate lewton;
 #[macro_use] extern crate log;
 extern crate log4rs;
+extern crate nalgebra;
 extern crate winit;
 
+///
+pub mod audio;
 /// High-level wrapper for [ash](https://github.com/MaikKlein/ash) around typical types.
-pub mod rhi;
+pub mod graphics;
 pub mod util;
 
 use log::{LevelFilter};
@@ -31,7 +36,7 @@ fn main() {
         .build(&events_loop)
         .expect("Failed to create window.");
 
-    let mut renderer = rhi::Renderer::new(&window);
+    let mut renderer = graphics::Renderer::new(&window);
 
     let mut running = true;
     &renderer.begin_frame();

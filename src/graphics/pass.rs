@@ -5,6 +5,8 @@ use ash::version::DeviceV1_0;
 use ash::vk;
 use super::Device;
 
+/// Represents how the begin to end state for rendering should occur.
+// TODO: Create builder for this object due to somewhat complicated state.
 pub struct RenderPass {
     device : Rc<RefCell<Device>>,
     render_pass : vk::RenderPass,
@@ -20,6 +22,7 @@ impl Drop for RenderPass {
 
 impl RenderPass {
     pub fn new(device : Rc<RefCell<Device>>) -> Self {
+        // Hardcoded formats for now. Need to allow choice in future.
         let color_attachment = vk::AttachmentDescription::builder()
             .format(vk::Format::B8G8R8A8_SRGB)
             .samples(vk::SampleCountFlags::TYPE_1)

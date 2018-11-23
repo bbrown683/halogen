@@ -3,6 +3,8 @@ pub mod debug;
 pub mod device;
 pub mod framebuffer;
 pub mod instance;
+/// Defines the appearance of a renderable object. Currently provides basic options for a `ColoredMaterial` or a `TexturedMaterial`.
+pub mod material;
 pub mod pass;
 pub mod pipeline;
 /// Platform-specific helper functions.
@@ -20,6 +22,8 @@ use self::cmd::{CmdBuffer, CmdPool, CmdState};
 use self::device::{Device, DeviceCreationError};
 use self::framebuffer::Framebuffer;
 use self::instance::Instance;
-use self::queue::Queue;
+use self::material::{ColoredMaterial, TexturedMaterial};
 use self::pass::RenderPass;
+use self::pipeline::Pipeline;
+use self::queue::Queue;
 use self::swapchain::{Swapchain, SwapchainCreationError};
