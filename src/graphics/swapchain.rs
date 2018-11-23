@@ -186,6 +186,7 @@ impl Swapchain {
         let present_info = vk::PresentInfoKHR::builder()
             .image_indices(&[self.current_image])
             .swapchains(&[self.swapchain])
+            .wait_semaphores(&[self.present_queue.borrow().get_submit_semaphore()])
             .build();
         // TODO: Use value to validate present status.
         let present_status = unsafe {
@@ -276,5 +277,12 @@ impl Swapchain {
     /// Returns all present modes supported by the surface initialized with the Swapchain.
     pub fn get_supported_present_modes(&self) -> Vec<vk::PresentModeKHR> {
         self.present_modes.clone()
+    }
+
+    pub fn get_acquire_semaphore(&self) -> vk::Semaphore {
+        self.acquire_semaphores
+            .get(self.current_image as usize)
+            .unwrap()
+            .clone()
     }
 }

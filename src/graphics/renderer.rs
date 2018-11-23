@@ -170,7 +170,8 @@ impl Renderer {
             .as_ref()
             .unwrap()
             .borrow()
-            .submit(self.graphics_buffer.as_ref().unwrap());
+            .submit(self.graphics_buffer.as_ref().unwrap(),
+                    self.swapchain.as_ref().unwrap().get_acquire_semaphore());
         self.swapchain.as_ref().unwrap().present();
     }
 }

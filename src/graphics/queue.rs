@@ -8,12 +8,16 @@ use super::{CmdBuffer, Device};
 pub struct Queue {
     device : Rc<RefCell<Device>>,
     queue : vk::Queue,
+    submit_semaphore : vk::Semaphore,
     family_index : u32,
 }
 
 impl Drop for Queue {
     fn drop(&mut self) {
-        unsafe { self.device.borrow().get_ash_device().queue_wait_idle(self.queue).unwrap(); }
+        unsafe {
+            self.device.borrow().get_ash_device().queue_wait_idle(self.queue).unwrap();
+            self.device.borrow().get_ash_device().destroy_semaphore(self.submit_semaphore, None);
+        }
         info!("Dropped Queue")
     }
 }
@@ -25,13 +29,27 @@ impl Queue {
                 .borrow()
                 .get_ash_device()
                 .get_device_queue(family_index, 0);
-            Self { device, queue, family_index }
+
+            let semaphore_info = vk::SemaphoreCreateInfo::builder()
+                .build();
+
+            let submit_semaphore = unsafe {
+                device
+                    .borrow()
+                    .get_ash_device()
+                    .create_semaphore(&semaphore_info, None)
+                    .expect("Failed to create semaphore")
+            };
+            Self { device, queue, family_index, submit_semaphore }
         }
     }
 
-    pub fn submit(&self, cmd_buffer : &CmdBuffer) {
+    pub fn submit(&self, cmd_buffer : &CmdBuffer, wait_semaphore : vk::Semaphore) {
         let submit_info = vk::SubmitInfo::builder()
             .command_buffers(&[cmd_buffer.get_cmd_buffer_raw()])
+            .signal_semaphores(&[self.submit_semaphore])
+            .wait_semaphores(&[wait_semaphore])
+            .wait_dst_stage_mask(&[vk::PipelineStageFlags::ALL_GRAPHICS])
             .build();
         unsafe {
             self.device
@@ -46,6 +64,8 @@ impl Queue {
                 .unwrap();
         }
     }
+
+    pub fn get_submit_semaphore(&self) -> vk::Semaphore { self.submit_semaphore }
 
     pub fn get_queue_raw(&self) -> vk::Queue {
         self.queue
