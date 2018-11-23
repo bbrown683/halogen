@@ -3,7 +3,7 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, Instance, Pipeline, RenderPass,
+use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, Instance, GraphicsPipeline, RenderPass,
             Swapchain, Queue};
 use crate::util::CapturedEvent;
 
@@ -16,7 +16,7 @@ pub struct Renderer {
     transfer_queue : Option<Rc<RefCell<Queue>>>,
     swapchain : Option<Swapchain>,
     default_render_pass : Option<RenderPass>,
-    default_graphics_pipeline : Option<Pipeline>,
+    default_graphics_pipeline : Option<GraphicsPipeline>,
     framebuffers : Option<Vec<Framebuffer>>,
     graphics_pool : Option<Rc<RefCell<CmdPool>>>,
     graphics_buffer : Option<CmdBuffer>,
@@ -102,7 +102,7 @@ impl Renderer {
         let default_render_pass = RenderPass::new(
             Rc::clone(&device));
 
-        let default_graphics_pipeline = Pipeline::new(
+        let default_graphics_pipeline = GraphicsPipeline::new(
             Rc::clone(&device),
             &default_render_pass,
             swapchain.get_capabilities().current_extent
@@ -156,7 +156,8 @@ impl Renderer {
             .record_graphics(
                 cmd_state,
                 self.default_render_pass.as_ref().unwrap(),
-                self.framebuffers.as_ref().unwrap().get(next_image.clone() as usize).unwrap());
+                self.framebuffers.as_ref().unwrap().get(next_image.clone() as usize).unwrap(),
+                self.default_graphics_pipeline.as_ref().unwrap());
     }
 
     pub fn end_frame(&self) {

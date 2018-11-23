@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use ash::version::DeviceV1_0;
 use ash::vk;
-use super::{Device, Framebuffer, Queue, RenderPass};
+use super::{Device, Framebuffer, GraphicsPipeline, Queue, RenderPass};
 
 /// Specifices the state which will be used for Command Buffers.
 pub struct CmdState {
@@ -66,7 +66,8 @@ impl CmdBuffer {
     pub fn record_graphics(&mut self,
                            state : CmdState,
                            render_pass : &RenderPass,
-                           framebuffer : &Framebuffer) {
+                           framebuffer : &Framebuffer,
+                           pipeline : &GraphicsPipeline) {
         unsafe {
             self.device
                 .borrow()
@@ -95,7 +96,6 @@ impl CmdBuffer {
                     &begin_info)
                 .unwrap();
         }
-
         self.recording = true;
 
         let clear_values = vec![
@@ -111,11 +111,22 @@ impl CmdBuffer {
             .build();
 
         unsafe {
-            // Start the renderpass.
             self.device
                 .borrow()
                 .get_ash_device()
                 .cmd_begin_render_pass(self.cmd_buffer, &begin_pass_info, vk::SubpassContents::INLINE);
+            // Beginning of the render pass.
+            // =====================================================================================
+            self.device
+                .borrow()
+                .get_ash_device()
+                .cmd_bind_pipeline(self.cmd_buffer, vk::PipelineBindPoint::GRAPHICS, pipeline.get_pipeline_raw());
+            self.device
+                .borrow()
+                .get_ash_device()
+                .cmd_draw(self.cmd_buffer, 3, 1, 0, 0);
+            // End of render pass.
+            // =====================================================================================
             self.device
                 .borrow()
                 .get_ash_device()

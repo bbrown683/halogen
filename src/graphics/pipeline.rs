@@ -7,28 +7,27 @@ use ash::version::DeviceV1_0;
 use ash::vk;
 use super::{Device, RenderPass};
 
-/// Represents the flow of the graphics/compute pipeline from the vertex to fragment stage.
-// TODO: Create builder for this object due to somewhat complicated state. Additionally, support compute.
-pub struct Pipeline {
+/// Represents the flow of the graphics pipeline from the vertex to fragment stage.
+pub struct GraphicsPipeline {
     device : Rc<RefCell<Device>>,
     pipeline : vk::Pipeline,
     layout : vk::PipelineLayout,
 }
 
-impl Drop for Pipeline {
+impl Drop for GraphicsPipeline {
     fn drop(&mut self) {
         unsafe {
             self.device.borrow().get_ash_device().destroy_pipeline_layout(self.layout, None);
             self.device.borrow().get_ash_device().destroy_pipeline(self.pipeline, None);
         }
-        info!("Dropped Pipeline")
+        info!("Dropped GraphicsPipeline")
     }
 }
 
-impl Pipeline {
+impl GraphicsPipeline {
     pub fn new(device : Rc<RefCell<Device>>, render_pass : &RenderPass, extent : vk::Extent2D) -> Self {
-        let vertex_code = include_bytes!("../assets/shaders/default.vert.spv").to_vec();
-        let fragment_code = include_bytes!("../assets/shaders/default.frag.spv").to_vec();
+        let vertex_code = include_bytes!("../assets/shaders/vert.spv").to_vec();
+        let fragment_code = include_bytes!("../assets/shaders/frag.spv").to_vec();
         let entry_point = CString::new("main").unwrap();
 
         let vertex_module_info = vk::ShaderModuleCreateInfo {
@@ -92,25 +91,7 @@ impl Pipeline {
             .line_width(1.0)
             .build();
 
-        let position_attribute = vk::VertexInputAttributeDescription::builder()
-            .binding(0)
-            .format(vk::Format::R32G32B32_SFLOAT)
-            .location(0)
-            .offset(0)
-            .build();
-
-        let position_binding = vk::VertexInputBindingDescription::builder()
-            .binding(0)
-            .input_rate(vk::VertexInputRate::VERTEX)
-            .stride(size_of::<f32>() as u32)
-            .build();
-
-        let vertex_attributes = vec![position_attribute];
-        let vertex_bindings = vec![position_binding];
-
         let vertex_input = vk::PipelineVertexInputStateCreateInfo::builder()
-            .vertex_attribute_descriptions(vertex_attributes.as_slice())
-            .vertex_binding_descriptions(vertex_bindings.as_slice())
             .build();
 
         let viewports = vec![
