@@ -3,8 +3,8 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, Instance, GraphicsPipeline, RenderPass,
-            Swapchain, Queue};
+use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, GraphicsPipeline,
+            RenderPass, RenderPassBuilder, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
 /// The highest level of the graphics module, the `Renderer` manages all render state.
@@ -15,7 +15,7 @@ pub struct Renderer {
     graphics_queue : Option<Rc<RefCell<Queue>>>,
     transfer_queue : Option<Rc<RefCell<Queue>>>,
     swapchain : Option<Swapchain>,
-    default_render_pass : Option<RenderPass>,
+    default_render_pass : Option<Rc<RefCell<RenderPass>>>,
     default_graphics_pipeline : Option<GraphicsPipeline>,
     framebuffers : Option<Vec<Framebuffer>>,
     graphics_pool : Option<Rc<RefCell<CmdPool>>>,
@@ -56,11 +56,13 @@ impl CapturedEvent for Renderer {
         self.swapchain.as_mut().unwrap().recreate();
         self.framebuffers.as_mut().unwrap().clear();
         for image in self.swapchain.as_ref().unwrap().get_images() {
-            self.framebuffers.as_mut().unwrap().push(Framebuffer::new(
+            self.framebuffers.as_mut().unwrap().push(FramebufferBuilder::new(
                 Rc::clone(&self.device.clone().unwrap()),
-                &self.default_render_pass.as_ref().unwrap(),
+                Rc::clone(&self.default_render_pass.clone().unwrap()),
                 image,
-                self.swapchain.as_ref().unwrap().get_capabilities().current_extent));
+                self.swapchain.as_ref().unwrap().get_surface_format().format,
+                self.swapchain.as_ref().unwrap().get_capabilities().current_extent)
+                .build());
         }
     }
 }
@@ -99,24 +101,27 @@ impl Renderer {
             2).ok()
             .unwrap();
 
-        let default_render_pass = RenderPass::new(
-            Rc::clone(&device));
+        let default_render_pass = Rc::new(RefCell::new(RenderPassBuilder::new(
+            Rc::clone(&device))
+            .add_color_attachment(swapchain.get_surface_format().format)
+            .build()));
 
         let default_graphics_pipeline = GraphicsPipeline::new(
             Rc::clone(&device),
-            &default_render_pass,
+            &default_render_pass.borrow(),
             swapchain.get_capabilities().current_extent
         );
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();
         for image in swapchain.get_images() {
-            framebuffers.push(Framebuffer::new(
+            framebuffers.push(FramebufferBuilder::new(
                 Rc::clone(&device),
-                &default_render_pass,
+                Rc::clone(&default_render_pass),
                 image,
+                swapchain.get_surface_format().format,
                 swapchain.get_capabilities().current_extent
-            ));
+            ).build());
         }
 
         let graphics_pool = Rc::new(RefCell::new(CmdPool::new(
@@ -155,7 +160,7 @@ impl Renderer {
             .unwrap()
             .record_graphics(
                 cmd_state,
-                self.default_render_pass.as_ref().unwrap(),
+                &self.default_render_pass.as_ref().unwrap().borrow(),
                 self.framebuffers.as_ref().unwrap().get(next_image.clone() as usize).unwrap(),
                 self.default_graphics_pipeline.as_ref().unwrap());
     }

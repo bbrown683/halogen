@@ -23,9 +23,23 @@ impl Drop for Framebuffer {
 }
 
 impl Framebuffer {
+    pub fn get_framebuffer_raw(&self) -> vk::Framebuffer {
+        self.framebuffer
+    }
+}
+
+pub struct FramebufferBuilder {
+    device : Rc<RefCell<Device>>,
+    render_pass : Rc<RefCell<RenderPass>>,
+    extent : vk::Extent2D,
+    color_view : vk::ImageView,
+}
+
+impl FramebufferBuilder {
     pub fn new(device : Rc<RefCell<Device>>,
-               render_pass : &RenderPass,
+               render_pass : Rc<RefCell<RenderPass>>,
                color_image : vk::Image,
+               color_format : vk::Format,
                extent : vk::Extent2D) -> Self {
         let color_subresource_range = vk::ImageSubresourceRange::builder()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
@@ -34,7 +48,7 @@ impl Framebuffer {
             .build();
 
         let color_view_info = vk::ImageViewCreateInfo::builder()
-            .format(vk::Format::B8G8R8A8_SRGB)
+            .format(color_format)
             .image(color_image)
             .view_type(vk::ImageViewType::TYPE_2D)
             .subresource_range(color_subresource_range)
@@ -47,30 +61,33 @@ impl Framebuffer {
                 .create_image_view(&color_view_info, None)
                 .unwrap()
         };
+        Self { device,
+            render_pass,
+            extent,
+            color_view
+        }
+    }
 
+    pub fn add_depth_stencil(self) -> Self {
+        self
+    }
+
+    pub fn build(self) -> Framebuffer {
         let framebuffer_info = vk::FramebufferCreateInfo::builder()
             .layers(1)
-            .width(extent.width)
-            .height(extent.height)
-            .render_pass(render_pass.get_render_pass_raw())
-            .attachments(&[color_view])
+            .width(self.extent.width)
+            .height(self.extent.height)
+            .render_pass(self.render_pass.borrow().get_render_pass_raw())
+            .attachments(&[self.color_view])
             .build();
 
         let framebuffer = unsafe {
-            device
+            self.device
                 .borrow()
                 .get_ash_device()
                 .create_framebuffer(&framebuffer_info, None)
                 .expect("Failed to create framebuffer")
         };
-
-        Self { device,
-            framebuffer,
-            color_view,
-        }
-    }
-
-    pub fn get_framebuffer_raw(&self) -> vk::Framebuffer {
-        self.framebuffer
+        Framebuffer { device: Rc::clone(&self.device), framebuffer, color_view: self.color_view }
     }
 }

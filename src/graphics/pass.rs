@@ -21,46 +21,84 @@ impl Drop for RenderPass {
 }
 
 impl RenderPass {
+    pub fn get_render_pass_raw(&self) -> vk::RenderPass {
+        self.render_pass
+    }
+}
+
+pub struct RenderPassBuilder {
+    device : Rc<RefCell<Device>>,
+    color_attachments : Vec<vk::AttachmentDescription>,
+    color_references : Vec<vk::AttachmentReference>,
+    depth_stencil_attachment : Option<vk::AttachmentDescription>,
+}
+
+impl RenderPassBuilder {
     pub fn new(device : Rc<RefCell<Device>>) -> Self {
-        // Hardcoded formats for now. Need to allow choice in future.
-        let color_attachment = vk::AttachmentDescription::builder()
-            .format(vk::Format::B8G8R8A8_SRGB)
+        Self { device,
+            color_attachments: Vec::new(),
+            color_references: Vec::new(),
+            depth_stencil_attachment: None }
+    }
+
+    pub fn add_color_attachment(mut self, format : vk::Format) -> Self {
+        self.color_attachments.push(vk::AttachmentDescription::builder()
+            .format(format)
             .samples(vk::SampleCountFlags::TYPE_1)
             .final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
             .load_op(vk::AttachmentLoadOp::CLEAR)
             .store_op(vk::AttachmentStoreOp::STORE)
-            .build();
-
-        let attachments = vec![color_attachment];
-
-        // TODO: create depth stencil reference.
-        let color_reference = vec![vk::AttachmentReference::builder()
-            .attachment(0)
+            .build());
+        self.color_references.push(vk::AttachmentReference::builder()
+            .attachment((self.color_attachments.len() - 1) as u32)
             .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
-            .build()];
+            .build());
+        self
+    }
 
-        // TODO: add depth stencil attachment to subpass.
-        let subpass = vk::SubpassDescription::builder()
-            .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-            .color_attachments(color_reference.as_slice())
-            .build();
+    /// Adds a depth stencil attachment to the renderpass. There can only be a single depth-stencil attachment.
+    pub fn add_depth_attachment(mut self, format : vk::Format) -> Self {
+        self.depth_stencil_attachment = Some(vk::AttachmentDescription::builder()
+            .format(format)
+            .samples(vk::SampleCountFlags::TYPE_1)
+            .final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
+            .load_op(vk::AttachmentLoadOp::CLEAR)
+            .store_op(vk::AttachmentStoreOp::STORE)
+            .build());
+        self
+    }
+
+    pub fn build(self) -> RenderPass {
+        let subpass = if self.depth_stencil_attachment.is_some(){
+            let depth_stencil_reference = vk::AttachmentReference::builder()
+                .attachment(self.color_attachments.len() as u32)
+                .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+                .build();
+
+            vk::SubpassDescription::builder()
+                .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
+                .color_attachments(self.color_references.as_slice())
+                .depth_stencil_attachment(&depth_stencil_reference)
+                .build()
+        } else {
+            vk::SubpassDescription::builder()
+                .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
+                .color_attachments(self.color_references.as_slice())
+                .build()
+        };
 
         let render_pass_info = vk::RenderPassCreateInfo::builder()
-            .attachments(attachments.as_slice())
+            .attachments(self.color_attachments.as_slice())
             .subpasses(&[subpass])
             .build();
 
         let render_pass = unsafe {
-             device
-                 .borrow()
-                 .get_ash_device()
-                 .create_render_pass(&render_pass_info, None)
-                 .expect("Failed to create render pass")
+            self.device
+                .borrow()
+                .get_ash_device()
+                .create_render_pass(&render_pass_info, None)
+                .expect("Failed to create render pass")
         };
-        Self { device, render_pass }
-    }
-
-    pub fn get_render_pass_raw(&self) -> vk::RenderPass {
-        self.render_pass
+        RenderPass { device: Rc::clone(&self.device), render_pass }
     }
 }

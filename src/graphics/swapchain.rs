@@ -172,10 +172,9 @@ impl Swapchain {
                         .clone(),
                     vk::Fence::null())
         };
-        if acquire_result.is_err() {
-            error!("Failed to acquire image!");
-        } else {
-            self.current_image = acquire_result.unwrap().0;
+        match acquire_result {
+            Ok(index) => self.current_image = index.0,
+            Err(error) => error!("Failed to acquire image"),
         }
         self.current_image
     }
