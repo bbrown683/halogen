@@ -1,13 +1,16 @@
 use std::ffi::CString;
-use ash::vk;
+use ash::vk::{self, Result as VkResult};
 use ash::extensions::{DebugReport, Surface};
 use ash::version::{EntryV1_0, InstanceV1_0};
+use ash::InstanceError;
 
 use super::platform::{create_surface, get_required_instance_extensions};
 use super::debug::debug_callback;
 
 /// Provides a brief overview of why an instance failed to be created.
 pub enum InstanceCreationError {
+    /// Unknown or uncaptured error.
+    Unknown,
     /// Triggered if there is no [Vulkan ICD](https://github.com/KhronosGroup/Vulkan-LoaderAndValidationLayers/blob/master/loader/LoaderAndLayerInterface.md#installable-client-drivers).
     MissingDriver,
     /// There are required extensions which were not found.
@@ -34,13 +37,13 @@ impl Drop for Instance {
                     self.debug_report.take().unwrap(), None);
             }
             self.instance.destroy_instance(None);
-            info!("Dropped Instance.")
         }
+        info!("Dropped Instance.")
     }
 }
 
 impl Instance {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self,InstanceCreationError> {
         let entry = ash::Entry::new().unwrap();
 
         let layer_names = [CString::new("VK_LAYER_LUNARG_standard_validation").unwrap()];
@@ -70,8 +73,21 @@ impl Instance {
             .build();
 
         let instance = unsafe {
-            entry.create_instance(&instance_info, None)
-                .expect("Failed to create vulkan instance.")
+            let instance_result = entry.create_instance(&instance_info, None);
+            match instance_result {
+                Ok(instance) => (instance),
+                Err(error) => {
+                    match error {
+                        InstanceError::VkError(error) => match error {
+                            VkResult::ERROR_INCOMPATIBLE_DRIVER => return Err(InstanceCreationError::MissingDriver),
+                            VkResult::ERROR_EXTENSION_NOT_PRESENT => return Err(InstanceCreationError::MissingExtensions),
+                            VkResult::ERROR_LAYER_NOT_PRESENT => return Err(InstanceCreationError::MissingLayers),
+                            _ => return Err(InstanceCreationError::Unknown),
+                        },
+                        _ => return Err(InstanceCreationError::Unknown),
+                    }
+                }
+            }
         };
 
         // Only enable the report callback on debug builds.
@@ -104,13 +120,12 @@ impl Instance {
                 .expect("Failed to retrieve physical devices.")
         };
 
-        Self {
-            entry,
+        Ok(Self { entry,
             instance,
             debug_report_loader,
             debug_report,
             physical_devices
-        }
+        })
     }
 
     /// Returns the ash entrypoint.

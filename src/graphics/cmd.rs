@@ -27,6 +27,7 @@ impl Drop for CmdBuffer {
                 .get_ash_device()
                 .free_command_buffers(self.cmd_pool.borrow().get_cmd_pool_raw(), &[self.cmd_buffer]);
         }
+        info!("Dropped CmdBuffer")
     }
 }
 
@@ -98,8 +99,7 @@ impl CmdBuffer {
         self.recording = true;
 
         let clear_values = vec![
-            vk::ClearValue { color: vk::ClearColorValue { float32: [0.39, 0.58, 0.94, 1.0] } },
-            vk::ClearValue { depth_stencil: vk::ClearDepthStencilValue { depth: 1.0, stencil: 0 } }];
+            vk::ClearValue { color: vk::ClearColorValue { float32: [0.39, 0.58, 0.94, 1.0] } }];
 
         let begin_pass_info = vk::RenderPassBeginInfo::builder()
             .clear_values(clear_values.as_slice())
@@ -144,10 +144,8 @@ pub struct CmdPool {
 
 impl Drop for CmdPool {
     fn drop(&mut self) {
-        unsafe {
-            self.device.borrow().get_ash_device().destroy_command_pool(self.cmd_pool, None);
-            info!("Dropped CmdPool")
-        }
+        unsafe { self.device.borrow().get_ash_device().destroy_command_pool(self.cmd_pool, None); }
+        info!("Dropped CmdPool")
     }
 }
 

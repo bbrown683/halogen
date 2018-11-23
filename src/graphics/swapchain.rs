@@ -41,8 +41,8 @@ impl Drop for Swapchain {
             }
             self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
             self.surface_loader.destroy_surface_khr(self.surface, None);
-            info!("Dropped Swapchain")
         }
+        info!("Dropped Swapchain")
     }
 }
 
