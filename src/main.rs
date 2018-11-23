@@ -39,7 +39,6 @@ fn main() {
     let mut renderer = graphics::Renderer::new(&window);
 
     let mut running = true;
-
     while running {
         events_loop.poll_events(|event| {
             if let winit::Event::WindowEvent { event, .. } = event {

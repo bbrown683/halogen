@@ -149,7 +149,7 @@ impl Renderer {
     }
 
     pub fn begin_frame(&mut self) {
-        let next_image = &self.swapchain.as_mut().unwrap().get_next_image();
+        let next_image = &self.swapchain.as_mut().unwrap().acquire_next_image();
         let cmd_state = CmdState {
             format: self.swapchain.as_ref().unwrap().get_surface_format().format,
             extent: self.swapchain.as_ref().unwrap().get_capabilities().current_extent
@@ -166,12 +166,14 @@ impl Renderer {
     }
 
     pub fn end_frame(&self) {
+        // Queue needs to submit our draw calls, but has to wait for the image to be acquired.
         self.graphics_queue
             .as_ref()
             .unwrap()
             .borrow()
             .submit(self.graphics_buffer.as_ref().unwrap(),
-                    self.swapchain.as_ref().unwrap().get_acquire_semaphore());
+                    Some(self.swapchain.as_ref().unwrap().get_current_acquire_semaphore()),
+                    Some(self.swapchain.as_ref().unwrap().get_current_acquire_fence()));
         self.swapchain.as_ref().unwrap().present();
     }
 }

@@ -15,6 +15,7 @@ pub struct RenderPass {
 impl Drop for RenderPass {
     fn drop(&mut self) {
         unsafe {
+            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
             self.device.borrow().get_ash_device().destroy_render_pass(self.render_pass, None);
         }
     }

@@ -3,7 +3,7 @@ use std::iter;
 use std::rc::Rc;
 use ash::extensions::{Surface as SurfaceLoader, Swapchain as SwapchainLoader};
 use ash::version::DeviceV1_0;
-use ash::vk;
+use ash::vk::{self, Result as VkResult};
 use super::{Device, Instance, Queue};
 use super::util::select_color_format;
 use super::platform::{create_surface, get_required_instance_extensions};
@@ -28,16 +28,22 @@ pub struct Swapchain {
     swapchain_loader : SwapchainLoader,
     swapchain : vk::SwapchainKHR,
     acquire_semaphores : Vec<vk::Semaphore>,
+    acquire_fences : Vec<vk::Fence>,
     images : Vec<vk::Image>,
     image_count : u32,
+    current_frame : u32,
     current_image : u32,
 }
 
 impl Drop for Swapchain {
     fn drop(&mut self) {
         unsafe {
+            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
             for semaphore in self.acquire_semaphores.clone() {
                 self.device.borrow().get_ash_device().destroy_semaphore(semaphore, None);
+            }
+            for fence in self.acquire_fences.clone() {
+                self.device.borrow().get_ash_device().destroy_fence(fence, None);
             }
             self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
             self.surface_loader.destroy_surface_khr(self.surface, None);
@@ -135,6 +141,20 @@ impl Swapchain {
             .take(image_count as _)
             .collect();
 
+        let fence_info = vk::FenceCreateInfo::builder()
+            .flags(vk::FenceCreateFlags::SIGNALED)
+            .build();
+        let acquire_fences = iter::repeat_with(||
+            unsafe {
+                device
+                    .borrow()
+                    .get_ash_device()
+                    .create_fence(&fence_info, None)
+                    .expect("Failed to create fence")
+            })
+            .take(image_count as _)
+            .collect();
+
         let images = unsafe {
             swapchain_loader
                 .get_swapchain_images_khr(swapchain)
@@ -153,39 +173,58 @@ impl Swapchain {
             swapchain_loader,
             swapchain,
             acquire_semaphores,
+            acquire_fences,
             images,
             image_count,
+            current_frame: 0,
             current_image: 0,
         })
     }
 
     /// Returns the next image index in the swapchain. This is typically used at the beginning of a render pass.
-    pub fn get_next_image(&mut self) -> u32 {
+    pub fn acquire_next_image(&mut self) -> u32 {
+        println!("Acquired image");
         let acquire_result = unsafe {
+            // Wait for these fences to be signalled then reset them to a non-signalled state.
+            self.device
+                .borrow()
+                .get_ash_device()
+                .wait_for_fences(&[self.acquire_fences.get(self.current_frame as usize).unwrap().clone()], true, u64::max_value())
+                .unwrap();
+            self.device
+                .borrow()
+                .get_ash_device()
+                .reset_fences(&[self.acquire_fences.get(self.current_frame as usize).unwrap().clone()])
+                .unwrap();
+            // Attempt to acquire the next image from the swapchain.
             self.swapchain_loader
                 .acquire_next_image_khr(
                     self.swapchain,
                     u64::max_value(),
-                    self.acquire_semaphores
-                        .get(self.current_image as usize)
-                        .unwrap()
-                        .clone(),
+                    // Signal this semaphore on completion. Present queue waits for this to complete before submission.
+                    self.acquire_semaphores.get(self.current_frame as usize).unwrap().clone(),
                     vk::Fence::null())
         };
         match acquire_result {
             Ok(index) => self.current_image = index.0,
-            Err(error) => error!("Failed to acquire image"),
+            // TODO: Handle these events.
+            Err(error) => match error {
+                VkResult::ERROR_SURFACE_LOST_KHR => error!("Lost surface"),
+                VkResult::ERROR_OUT_OF_DATE_KHR => error!("Images are out of date"),
+                _ => (),
+            }
         }
+        self.current_frame = (self.current_frame + 1) % self.image_count;
         self.current_image
     }
 
     /// Presents the image to the screen, using the specified present queue. The present queue can be any queue
     /// graphics, transfer, compute which supports present operations.
     pub fn present(&self) {
-        // TODO: Allow usage of wait semaphores.
         let present_info = vk::PresentInfoKHR::builder()
             .image_indices(&[self.current_image])
             .swapchains(&[self.swapchain])
+            // Wait on submission to be completed before presenting.
             .wait_semaphores(&[self.present_queue.borrow().get_submit_semaphore()])
             .build();
         // TODO: Use value to validate present status.
@@ -194,6 +233,10 @@ impl Swapchain {
                 self.present_queue.borrow().get_queue_raw(),
                 &present_info)
         };
+        match present_status {
+            Ok(status) => (),
+            Err(error) => (),
+        }
     }
 
     /// Recreates the swapchain. This is particularly useful in the event of resizes.
@@ -279,9 +322,18 @@ impl Swapchain {
         self.present_modes.clone()
     }
 
-    pub fn get_acquire_semaphore(&self) -> vk::Semaphore {
+    /// Returns the semaphore being used by the swapchain.
+    pub fn get_current_acquire_semaphore(&self) -> vk::Semaphore {
         self.acquire_semaphores
-            .get(self.current_image as usize)
+            .get(self.current_frame as usize)
+            .unwrap()
+            .clone()
+    }
+
+    /// Returns the current fence being used by the swapchain.
+    pub fn get_current_acquire_fence(&self) -> vk::Fence {
+        self.acquire_fences
+            .get(self.current_frame as usize)
             .unwrap()
             .clone()
     }

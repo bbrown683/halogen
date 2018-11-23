@@ -14,14 +14,13 @@ pub struct CmdBuffer {
     device : Rc<RefCell<Device>>,
     cmd_pool : Rc<RefCell<CmdPool>>,
     cmd_buffer : vk::CommandBuffer,
-    fence : vk::Fence,
     recording : bool,
 }
 
 impl Drop for CmdBuffer {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().destroy_fence(self.fence, None);
+            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
             self.device
                 .borrow()
                 .get_ash_device()
@@ -40,26 +39,17 @@ impl CmdBuffer {
             .command_buffer_count(1)
             .level(vk::CommandBufferLevel::PRIMARY)
             .build();
-        let fence_info = vk::FenceCreateInfo::builder()
-            .flags(vk::FenceCreateFlags::SIGNALED)
-            .build();
 
-        let (cmd_buffer, fence) = unsafe {
-            let cmd_buffer = device
+        let cmd_buffer = unsafe {
+            device
                 .borrow()
                 .get_ash_device()
                 .allocate_command_buffers(&cmd_buffer_info)
                 .expect("Failed to create command buffer")
-                .remove(0);
-            let fence = device
-                .borrow()
-                .get_ash_device()
-                .create_fence(&fence_info, None)
-                .expect("Failed to create fence.");
-            (cmd_buffer, fence)
+                .remove(0)
         };
 
-        Self { device, cmd_pool, cmd_buffer, fence, recording: false }
+        Self { device, cmd_pool, cmd_buffer, recording: false }
     }
 
     // Records graphics commands to the command buffer.
@@ -75,11 +65,6 @@ impl CmdBuffer {
                 .reset_command_buffer(
                     self.cmd_buffer,
                     vk::CommandBufferResetFlags::RELEASE_RESOURCES)
-                .unwrap();
-            self.device
-                .borrow()
-                .get_ash_device()
-                .reset_fences(&[self.fence])
                 .unwrap();
         }
 
@@ -143,8 +128,6 @@ impl CmdBuffer {
     pub fn get_cmd_buffer_raw(&self) -> vk::CommandBuffer {
         self.cmd_buffer
     }
-
-    pub fn get_fence_raw(&self) -> vk::Fence { self.fence }
  }
 
 /// Allocates the command buffers into memory for reuse.
@@ -155,7 +138,10 @@ pub struct CmdPool {
 
 impl Drop for CmdPool {
     fn drop(&mut self) {
-        unsafe { self.device.borrow().get_ash_device().destroy_command_pool(self.cmd_pool, None); }
+        unsafe {
+            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
+            self.device.borrow().get_ash_device().destroy_command_pool(self.cmd_pool, None);
+        }
         info!("Dropped CmdPool")
     }
 }

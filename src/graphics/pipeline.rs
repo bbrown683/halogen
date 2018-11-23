@@ -17,6 +17,7 @@ pub struct GraphicsPipeline {
 impl Drop for GraphicsPipeline {
     fn drop(&mut self) {
         unsafe {
+            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
             self.device.borrow().get_ash_device().destroy_pipeline_layout(self.layout, None);
             self.device.borrow().get_ash_device().destroy_pipeline(self.pipeline, None);
         }
