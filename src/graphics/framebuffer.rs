@@ -18,8 +18,8 @@ impl Drop for Framebuffer {
             self.device.borrow().get_ash_device().device_wait_idle().unwrap();
             self.device.borrow().get_ash_device().destroy_framebuffer(self.framebuffer, None);
             self.device.borrow().get_ash_device().destroy_image_view(self.color_view, None);
-            info!("Dropped Framebuffer")
         }
+        info!("Dropped Framebuffer")
     }
 }
 

@@ -84,11 +84,17 @@ impl Device {
             .queue_priorities(&priorities)
             .build();
 
+        let enabled_features = vk::PhysicalDeviceFeatures::builder()
+            .sampler_anisotropy(true)
+            .fill_mode_non_solid(true)
+            .build();
+
         let queue_infos = vec![compute_info, graphics_info, transfer_info];
         let device_extensions = [Swapchain::name().as_ptr()];
         let device_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(queue_infos.as_slice())
             .enabled_extension_names(device_extensions.as_ref())
+            .enabled_features(&enabled_features)
             .build();
 
         let device = unsafe {

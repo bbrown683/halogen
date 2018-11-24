@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use ash::version::DeviceV1_0;
 use ash::vk;
-use super::{Device, Framebuffer, GraphicsPipeline, Queue, RenderPass};
+use super::{Device, Framebuffer, Pipeline, Queue, RenderPass};
 
 /// Specifices the state which will be used for Command Buffers.
 pub struct CmdState {
@@ -57,7 +57,7 @@ impl CmdBuffer {
                            state : CmdState,
                            render_pass : &RenderPass,
                            framebuffer : &Framebuffer,
-                           pipeline : &GraphicsPipeline) {
+                           pipeline : &Pipeline) {
         unsafe {
             // Wait for any device operations to complete before resetting command buffer.
             self.device

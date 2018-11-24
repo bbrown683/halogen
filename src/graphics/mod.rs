@@ -24,6 +24,6 @@ use self::framebuffer::{Framebuffer, FramebufferBuilder};
 use self::instance::Instance;
 use self::material::{ColoredMaterial, TexturedMaterial};
 use self::pass::{RenderPass, RenderPassBuilder};
-use self::pipeline::GraphicsPipeline;
+use self::pipeline::{Pipeline, PipelineBuilder};
 use self::queue::Queue;
 use self::swapchain::{Swapchain, SwapchainCreationError};

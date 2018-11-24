@@ -94,10 +94,12 @@ impl Instance {
         let (debug_report_loader, debug_report) = if cfg!(debug_assertions) {
             let debug_info = vk::DebugReportCallbackCreateInfoEXT::builder()
                 .flags(vk::DebugReportFlagsEXT::ERROR
-                    | vk::DebugReportFlagsEXT::WARNING
-                    | vk::DebugReportFlagsEXT::DEBUG
-                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
-                    | vk::DebugReportFlagsEXT::INFORMATION)
+                    | vk::DebugReportFlagsEXT::WARNING)
+//                .flags(vk::DebugReportFlagsEXT::ERROR
+//                    | vk::DebugReportFlagsEXT::WARNING
+//                    | vk::DebugReportFlagsEXT::DEBUG
+//                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
+//                    | vk::DebugReportFlagsEXT::INFORMATION)
                 .pfn_callback(Some(debug_callback))
                 .build();
 

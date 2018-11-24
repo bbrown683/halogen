@@ -3,8 +3,8 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, GraphicsPipeline,
-            RenderPass, RenderPassBuilder, Swapchain, Queue};
+use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
+            PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
 /// The highest level of the graphics module, the `Renderer` manages all render state.
@@ -16,7 +16,7 @@ pub struct Renderer {
     transfer_queue : Option<Rc<RefCell<Queue>>>,
     swapchain : Option<Swapchain>,
     default_render_pass : Option<Rc<RefCell<RenderPass>>>,
-    default_graphics_pipeline : Option<GraphicsPipeline>,
+    default_graphics_pipeline : Option<Pipeline>,
     framebuffers : Option<Vec<Framebuffer>>,
     graphics_pool : Option<Rc<RefCell<CmdPool>>>,
     graphics_buffer : Option<CmdBuffer>,
@@ -106,11 +106,9 @@ impl Renderer {
             .add_color_attachment(swapchain.get_surface_format().format)
             .build()));
 
-        let default_graphics_pipeline = GraphicsPipeline::new(
-            Rc::clone(&device),
-            &default_render_pass.borrow(),
-            swapchain.get_capabilities().current_extent
-        );
+        let default_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
+            .build_graphics(&default_render_pass.borrow(),
+                            swapchain.get_capabilities().current_extent);
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();

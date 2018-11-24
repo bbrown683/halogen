@@ -8,13 +8,15 @@ use ash::vk;
 use super::{Device, RenderPass};
 
 /// Represents the flow of the graphics pipeline from the vertex to fragment stage.
-pub struct GraphicsPipeline {
+pub struct Pipeline {
     device : Rc<RefCell<Device>>,
     pipeline : vk::Pipeline,
     layout : vk::PipelineLayout,
+    supports_compute : bool,
+    supports_graphics : bool,
 }
 
-impl Drop for GraphicsPipeline {
+impl Drop for Pipeline {
     fn drop(&mut self) {
         unsafe {
             self.device.borrow().get_ash_device().device_wait_idle().unwrap();
@@ -25,8 +27,39 @@ impl Drop for GraphicsPipeline {
     }
 }
 
-impl GraphicsPipeline {
-    pub fn new(device : Rc<RefCell<Device>>, render_pass : &RenderPass, extent : vk::Extent2D) -> Self {
+impl Pipeline {
+    pub fn get_pipeline_raw(&self) -> vk::Pipeline {
+         self.pipeline
+    }
+
+    pub fn get_layout_raw(&self) -> vk::PipelineLayout {
+         self.layout
+    }
+
+    pub fn supports_compute(&self) -> bool {
+        self.supports_compute
+    }
+
+    pub fn supports_graphics(&self) -> bool {
+        self.supports_graphics
+    }
+}
+
+pub struct PipelineBuilder {
+    device : Rc<RefCell<Device>>,
+}
+
+impl PipelineBuilder {
+    pub fn new(device : Rc<RefCell<Device>>) -> Self {
+        Self { device }
+    }
+
+    /// Adds a vertex input to the pipeline.
+    pub fn add_vertex_input(mut self, location : u32, binding : u32, stride : u32) {
+
+    }
+
+    pub fn build_graphics(self, render_pass : &RenderPass, extent : vk::Extent2D) -> Pipeline {
         let vertex_code = include_bytes!("../assets/shaders/vert.spv").to_vec();
         let fragment_code = include_bytes!("../assets/shaders/frag.spv").to_vec();
         let entry_point = CString::new("main").unwrap();
@@ -44,7 +77,7 @@ impl GraphicsPipeline {
         };
 
         let vertex_module = unsafe {
-            device
+            self.device
                 .borrow()
                 .get_ash_device()
                 .create_shader_module(&vertex_module_info, None)
@@ -52,7 +85,7 @@ impl GraphicsPipeline {
         };
 
         let fragment_module = unsafe {
-            device
+            self.device
                 .borrow()
                 .get_ash_device()
                 .create_shader_module(&fragment_module_info, None)
@@ -118,7 +151,7 @@ impl GraphicsPipeline {
             .build();
 
         let layout = unsafe {
-            device
+            self.device
                 .borrow()
                 .get_ash_device()
                 .create_pipeline_layout(&layout_info, None)
@@ -140,23 +173,24 @@ impl GraphicsPipeline {
 
         // Create pipeline and destroy unneeded shader modules.
         let pipeline = unsafe {
-            let pipeline = device
+            let pipeline = self.device
                 .borrow()
                 .get_ash_device()
                 .create_graphics_pipelines(vk::PipelineCache::null(), &[pipeline_info], None)
                 .expect("Failed to create pipeline").remove(0);
-            device.borrow().get_ash_device().destroy_shader_module(vertex_module, None);
-            device.borrow().get_ash_device().destroy_shader_module(fragment_module, None);
+            self.device.borrow().get_ash_device().destroy_shader_module(vertex_module, None);
+            self.device.borrow().get_ash_device().destroy_shader_module(fragment_module, None);
             (pipeline)
         };
-        Self { device, pipeline, layout }
+        Pipeline { device: self.device,
+            pipeline,
+            layout,
+            supports_graphics: true,
+            supports_compute: false,
+        }
     }
-    
-     pub fn get_pipeline_raw(&self) -> vk::Pipeline {
-         self.pipeline
-     }
 
-     pub fn get_layout_raw(&self) -> vk::PipelineLayout {
-         self.layout
-     }
+    pub fn build_compute(self) {
+
+    }
 }

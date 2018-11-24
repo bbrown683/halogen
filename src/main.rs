@@ -5,6 +5,9 @@ extern crate lewton;
 #[macro_use] extern crate log;
 extern crate log4rs;
 extern crate nalgebra;
+extern crate num_cpus;
+extern crate rayon;
+extern crate spirv_reflect;
 extern crate winit;
 
 ///
@@ -33,6 +36,7 @@ fn main() {
     let window = winit::WindowBuilder::new()
         .with_dimensions(winit::dpi::LogicalSize::new(1024 as _, 768 as _))
         .with_title("Halogen".to_string())
+        .with_resizable(false)
         .build(&events_loop)
         .expect("Failed to create window.");
 
