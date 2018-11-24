@@ -183,7 +183,7 @@ impl Swapchain {
 
     /// Returns the next image index in the swapchain. This is typically used at the beginning of a render pass.
     pub fn acquire_next_image(&mut self) -> u32 {
-        println!("Acquired image");
+        self.current_frame = (self.current_frame + 1) % self.image_count;
         let acquire_result = unsafe {
             // Wait for these fences to be signalled then reset them to a non-signalled state.
             self.device
@@ -214,7 +214,6 @@ impl Swapchain {
                 _ => (),
             }
         }
-        self.current_frame = (self.current_frame + 1) % self.image_count;
         self.current_image
     }
 

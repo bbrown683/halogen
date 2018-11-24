@@ -59,6 +59,12 @@ impl CmdBuffer {
                            framebuffer : &Framebuffer,
                            pipeline : &GraphicsPipeline) {
         unsafe {
+            // Wait for any device operations to complete before resetting command buffer.
+            self.device
+                .borrow()
+                .get_ash_device()
+                .device_wait_idle()
+                .unwrap();
             self.device
                 .borrow()
                 .get_ash_device()
