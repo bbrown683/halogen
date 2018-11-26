@@ -73,23 +73,18 @@ impl Device {
 
         let compute_info = vk::DeviceQueueCreateInfo::builder()
             .queue_family_index(compute_index)
-            .queue_priorities(&priorities)
-            .build();
+            .queue_priorities(&priorities);
         let graphics_info = vk::DeviceQueueCreateInfo::builder()
             .queue_family_index(graphics_index)
-            .queue_priorities(&priorities)
-            .build();
+            .queue_priorities(&priorities);
         let transfer_info = vk::DeviceQueueCreateInfo::builder()
             .queue_family_index(transfer_index)
-            .queue_priorities(&priorities)
-            .build();
-
+            .queue_priorities(&priorities);
         let enabled_features = vk::PhysicalDeviceFeatures::builder()
             .sampler_anisotropy(true)
-            .fill_mode_non_solid(true)
-            .build();
+            .fill_mode_non_solid(true);
 
-        let queue_infos = vec![compute_info, graphics_info, transfer_info];
+        let queue_infos = vec![compute_info.build(), graphics_info.build(), transfer_info.build()];
         let device_extensions = [Swapchain::name().as_ptr()];
         let device_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(queue_infos.as_slice())

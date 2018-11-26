@@ -11,6 +11,8 @@ pub mod pipeline;
 pub mod platform;
 /// Operations for a queue, such as submitting graphics, compute, or transfer operations for execution by the GPU.
 pub mod queue;
+/// SPIRV reflection helpers. Utilizes [spirv-reflect-rs](https://github.com/gwihlidal/spirv-reflect-rs).
+pub mod reflect;
 /// Manages a Vulkan surface and swapchain, presenting the acquired images to the screen.
 pub mod swapchain;
 pub mod renderer;

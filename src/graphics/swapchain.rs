@@ -118,9 +118,7 @@ impl Swapchain {
             .image_array_layers(1)
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
             .min_image_count(image_count)
-            .clipped(true)
-            .build();
-
+            .clipped(true);
         let swapchain = unsafe {
             swapchain_loader
                 .create_swapchain_khr(&swapchain_info, None)
@@ -142,8 +140,7 @@ impl Swapchain {
             .collect();
 
         let fence_info = vk::FenceCreateInfo::builder()
-            .flags(vk::FenceCreateFlags::SIGNALED)
-            .build();
+            .flags(vk::FenceCreateFlags::SIGNALED);
         let acquire_fences = iter::repeat_with(||
             unsafe {
                 device
@@ -273,9 +270,7 @@ impl Swapchain {
             .image_array_layers(1)
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
             .min_image_count(self.image_count)
-            .clipped(true)
-            .build();
-
+            .clipped(true);
         self.swapchain = unsafe {
             let new_swapchain = self.swapchain_loader
                 .create_swapchain_khr(&swapchain_info, None)

@@ -24,24 +24,22 @@ impl Drop for Queue {
 
 impl Queue {
     pub fn new(device : Rc<RefCell<Device>>, family_index : u32) -> Self {
-        unsafe {
-            let queue = device
+        let queue = unsafe {
+            device
                 .borrow()
                 .get_ash_device()
-                .get_device_queue(family_index, 0);
+                .get_device_queue(family_index, 0)
+        };
 
-            let semaphore_info = vk::SemaphoreCreateInfo::builder()
-                .build();
-
-            let submit_semaphore = unsafe {
-                device
-                    .borrow()
-                    .get_ash_device()
-                    .create_semaphore(&semaphore_info, None)
-                    .expect("Failed to create semaphore")
-            };
-            Self { device, queue, family_index, submit_semaphore }
-        }
+        let semaphore_info = vk::SemaphoreCreateInfo::builder();
+        let submit_semaphore = unsafe {
+            device
+                .borrow()
+                .get_ash_device()
+                .create_semaphore(&semaphore_info, None)
+                .expect("Failed to create semaphore")
+        };
+        Self { device, queue, family_index, submit_semaphore }
     }
 
     /// Submits the command buffer to the queue for execution. The `submit_semaphore` will be signaled when this operation is complete.

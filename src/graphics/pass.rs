@@ -74,9 +74,7 @@ impl RenderPassBuilder {
         let subpass = if self.depth_stencil_attachment.is_some(){
             let depth_stencil_reference = vk::AttachmentReference::builder()
                 .attachment(self.color_attachments.len() as u32)
-                .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-                .build();
-
+                .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
             vk::SubpassDescription::builder()
                 .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
                 .color_attachments(self.color_references.as_slice())
@@ -93,7 +91,6 @@ impl RenderPassBuilder {
             .attachments(self.color_attachments.as_slice())
             .subpasses(&[subpass])
             .build();
-
         let render_pass = unsafe {
             self.device
                 .borrow()

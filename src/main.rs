@@ -48,7 +48,6 @@ fn main() {
             if let winit::Event::WindowEvent { event, .. } = event {
                 match event {
                     WindowEvent::CloseRequested => running = false,
-                    WindowEvent::Resized(size) => renderer.on_resize(size),
                     _ => (),
                 }
             }

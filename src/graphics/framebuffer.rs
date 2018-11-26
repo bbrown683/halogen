@@ -45,16 +45,13 @@ impl FramebufferBuilder {
         let color_subresource_range = vk::ImageSubresourceRange::builder()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
             .level_count(1)
-            .layer_count(1)
-            .build();
+            .layer_count(1);
 
         let color_view_info = vk::ImageViewCreateInfo::builder()
             .format(color_format)
             .image(color_image)
             .view_type(vk::ImageViewType::TYPE_2D)
-            .subresource_range(color_subresource_range)
-            .build();
-
+            .subresource_range(color_subresource_range.build());
         let color_view = unsafe {
             device
                 .borrow()
@@ -81,7 +78,6 @@ impl FramebufferBuilder {
             .render_pass(self.render_pass.borrow().get_render_pass_raw())
             .attachments(&[self.color_view])
             .build();
-
         let framebuffer = unsafe {
             self.device
                 .borrow()

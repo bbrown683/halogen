@@ -107,6 +107,8 @@ impl Renderer {
             .build()));
 
         let default_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
+            .add_shader_from_bytes(include_bytes!("../assets/shaders/vert.spv").to_vec())
+            .add_shader_from_bytes(include_bytes!("../assets/shaders/frag.spv").to_vec())
             .build_graphics(&default_render_pass.borrow(),
                             swapchain.get_capabilities().current_extent);
 

@@ -37,9 +37,7 @@ impl CmdBuffer {
         let cmd_buffer_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(cmd_pool.borrow().get_cmd_pool_raw())
             .command_buffer_count(1)
-            .level(vk::CommandBufferLevel::PRIMARY)
-            .build();
-
+            .level(vk::CommandBufferLevel::PRIMARY);
         let cmd_buffer = unsafe {
             device
                 .borrow()
@@ -75,9 +73,7 @@ impl CmdBuffer {
         }
 
         let begin_info = vk::CommandBufferBeginInfo::builder()
-            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT)
-            .build();
-
+            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         unsafe {
             self.device
                 .borrow()
@@ -98,8 +94,7 @@ impl CmdBuffer {
             .render_pass(render_pass.get_render_pass_raw())
             .render_area(vk::Rect2D::builder()
                 .extent(state.extent)
-                .build())
-            .build();
+                .build());
 
         unsafe {
             self.device
@@ -157,9 +152,7 @@ impl CmdPool {
                queue : &Queue) -> Self {
         let cmd_pool_info = vk::CommandPoolCreateInfo::builder()
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
-            .queue_family_index(queue.get_family_index())
-            .build();
-
+            .queue_family_index(queue.get_family_index());
         let cmd_pool = unsafe {
             device
                 .borrow()

@@ -69,9 +69,7 @@ impl Instance {
         */
         let instance_info = vk::InstanceCreateInfo::builder()
             .enabled_extension_names(&extension_names)
-            .enabled_layer_names(&layer_names_raw)
-            .build();
-
+            .enabled_layer_names(&layer_names_raw);
         let instance = unsafe {
             let instance_result = entry.create_instance(&instance_info, None);
             match instance_result {
@@ -100,8 +98,7 @@ impl Instance {
 //                    | vk::DebugReportFlagsEXT::DEBUG
 //                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
 //                    | vk::DebugReportFlagsEXT::INFORMATION)
-                .pfn_callback(Some(debug_callback))
-                .build();
+                .pfn_callback(Some(debug_callback));
 
             let debug_report_loader = DebugReport::new(&entry, &instance);
             let debug_report = unsafe {
