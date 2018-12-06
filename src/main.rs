@@ -1,14 +1,4 @@
 #![feature(range_contains)]
-extern crate alto;
-extern crate ash;
-extern crate lewton;
-#[macro_use] extern crate log;
-extern crate log4rs;
-extern crate nalgebra;
-extern crate num_cpus;
-extern crate rayon;
-extern crate spirv_reflect;
-extern crate winit;
 
 ///
 pub mod audio;

@@ -1,6 +1,7 @@
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use ash::vk;
+use log::{info, error, debug, trace, warn};
 
 pub unsafe extern "system" fn debug_callback(
     flags : vk::DebugReportFlagsEXT,

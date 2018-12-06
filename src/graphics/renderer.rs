@@ -2,9 +2,10 @@ use std::cell::RefCell;
 use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
+use log::{info, error, debug, trace, warn};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
-            PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
+use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance,
+            Material, Pipeline, PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
 /// The highest level of the graphics module, the `Renderer` manages all render state.
@@ -101,16 +102,17 @@ impl Renderer {
             2).ok()
             .unwrap();
 
+        let colored_material = Material::Colored;
+
         let default_render_pass = Rc::new(RefCell::new(RenderPassBuilder::new(
             Rc::clone(&device))
             .add_color_attachment(swapchain.get_surface_format().format)
             .build()));
-
         let default_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
-            .add_shader_from_bytes(include_bytes!("../assets/shaders/vert.spv").to_vec())
-            .add_shader_from_bytes(include_bytes!("../assets/shaders/frag.spv").to_vec())
             .build_graphics(&default_render_pass.borrow(),
-                            swapchain.get_capabilities().current_extent);
+                            swapchain.get_capabilities().current_extent,
+                            colored_material.get_description()
+            );
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();

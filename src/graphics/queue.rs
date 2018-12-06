@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use ash::vk;
 use ash::version::{DeviceV1_0};
+use log::{info, error, debug, trace, warn};
 use super::{CmdBuffer, Device};
 
 pub struct Queue {

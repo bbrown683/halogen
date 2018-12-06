@@ -3,6 +3,7 @@ use std::rc::Rc;
 use ash::extensions::Swapchain;
 use ash::version::{InstanceV1_0, DeviceV1_0};
 use ash::vk;
+use log::{info, error, debug, trace, warn};
 use super::{Instance, Queue};
 
 pub enum DeviceCreationError {

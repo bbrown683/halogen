@@ -15,3 +15,4 @@ pub trait CapturedEvent {
         println!("{:?} was received", input);
     }
 }
+

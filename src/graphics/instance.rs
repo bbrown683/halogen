@@ -3,6 +3,7 @@ use ash::vk::{self, Result as VkResult};
 use ash::extensions::{DebugReport, Surface};
 use ash::version::{EntryV1_0, InstanceV1_0};
 use ash::InstanceError;
+use log::{info, error, debug, trace, warn};
 
 use super::platform::{create_surface, get_required_instance_extensions};
 use super::debug::debug_callback;

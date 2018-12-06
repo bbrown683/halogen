@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use ash::version::DeviceV1_0;
 use ash::vk;
+use log::{info, error, debug, trace, warn};
 use super::{Device, Framebuffer, Pipeline, Queue, RenderPass};
 
 /// Specifices the state which will be used for Command Buffers.

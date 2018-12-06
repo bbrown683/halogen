@@ -4,6 +4,7 @@ use std::rc::Rc;
 use ash::extensions::{Surface as SurfaceLoader, Swapchain as SwapchainLoader};
 use ash::version::DeviceV1_0;
 use ash::vk::{self, Result as VkResult};
+use log::{info, error, debug, trace, warn};
 use super::{Device, Instance, Queue};
 use super::util::select_color_format;
 use super::platform::{create_surface, get_required_instance_extensions};

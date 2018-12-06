@@ -3,6 +3,7 @@ use std::default::Default;
 use std::rc::Rc;
 use ash::version::DeviceV1_0;
 use ash::vk;
+use log::{info, error, debug, trace, warn};
 use super::Device;
 
 /// Represents how the begin to end state for rendering should occur.
