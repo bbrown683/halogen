@@ -55,7 +55,6 @@ impl Instance {
         let extension_names = get_required_instance_extensions();
 
         // Enable validation layer only on debug builds.
-        /*
         let instance_info = if cfg!(debug_assertions) {
             vk::InstanceCreateInfo::builder()
                 .enabled_extension_names(&extension_names)
@@ -66,7 +65,7 @@ impl Instance {
                 .enabled_extension_names(&extension_names)
                 .build()
         };
-        */
+
         let instance_info = vk::InstanceCreateInfo::builder()
             .enabled_extension_names(&extension_names)
             .enabled_layer_names(&layer_names_raw);
@@ -92,12 +91,10 @@ impl Instance {
         let (debug_report_loader, debug_report) = if cfg!(debug_assertions) {
             let debug_info = vk::DebugReportCallbackCreateInfoEXT::builder()
                 .flags(vk::DebugReportFlagsEXT::ERROR
-                    | vk::DebugReportFlagsEXT::WARNING)
-//                .flags(vk::DebugReportFlagsEXT::ERROR
-//                    | vk::DebugReportFlagsEXT::WARNING
-//                    | vk::DebugReportFlagsEXT::DEBUG
-//                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
-//                    | vk::DebugReportFlagsEXT::INFORMATION)
+                    | vk::DebugReportFlagsEXT::WARNING
+                    | vk::DebugReportFlagsEXT::DEBUG
+                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
+                    | vk::DebugReportFlagsEXT::INFORMATION)
                 .pfn_callback(Some(debug_callback));
 
             let debug_report_loader = DebugReport::new(&entry, &instance);

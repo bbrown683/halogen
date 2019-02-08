@@ -16,6 +16,7 @@ pub mod audio;
 pub mod graphics;
 pub mod util;
 
+use std::error::Error;
 use log::{LevelFilter};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
@@ -54,5 +55,11 @@ fn main() {
         });
         &renderer.begin_frame();
         &renderer.end_frame();
+    }
+
+    let result = audio::run();
+    match result {
+        Err(e) => info!("{:?}", e.description()),
+        Ok(e) => info!("Ok")
     }
 }
