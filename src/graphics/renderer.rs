@@ -1,7 +1,5 @@
-use std::cell::RefCell;
-use std::iter;
-use std::rc::Rc;
-use std::sync::{Arc,Mutex};
+use std::{cell::RefCell, iter, rc::Rc};
+use std::sync::{Arc, Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
 use super::{ColoredMaterial, CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
             PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};

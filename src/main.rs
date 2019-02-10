@@ -36,7 +36,7 @@ fn main() {
     let window = winit::WindowBuilder::new()
         .with_dimensions(winit::dpi::LogicalSize::new(1024 as _, 768 as _))
         .with_title("Halogen".to_string())
-        .with_resizable(false)
+        .with_resizable(true)
         .build(&events_loop)
         .expect("Failed to create window.");
 

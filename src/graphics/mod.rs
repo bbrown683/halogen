@@ -1,3 +1,4 @@
+pub mod buffer;
 pub mod cmd;
 pub mod debug;
 pub mod device;
@@ -18,11 +19,12 @@ pub mod renderer;
 pub mod util;
 
 pub use self::renderer::Renderer;
+use self::buffer::VertexBuffer;
 use self::cmd::{CmdBuffer, CmdPool, CmdState};
 use self::device::{Device, DeviceCreationError};
 use self::framebuffer::{Framebuffer, FramebufferBuilder};
 use self::instance::Instance;
-use self::material::{ColoredMaterial, ColoredVertex, Material, MaterialType, TexturedMaterial, TexturedVertex, VertexType};
+use self::material::{ColoredMaterial, ColoredVertex, Material, TexturedMaterial, TexturedVertex, Vertex};
 use self::pass::{RenderPass, RenderPassBuilder};
 use self::pipeline::{Pipeline, PipelineBuilder};
 use self::queue::Queue;

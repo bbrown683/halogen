@@ -1,6 +1,6 @@
 use std::ffi::CString;
 use ash::vk::{self, Result as VkResult};
-use ash::extensions::{DebugReport, Surface};
+use ash::extensions::{ext::DebugReport, khr::Surface};
 use ash::version::{EntryV1_0, InstanceV1_0};
 use ash::InstanceError;
 
@@ -33,7 +33,7 @@ impl Drop for Instance {
         unsafe {
             // Check if debug report extension was toggled.
             if self.debug_report_loader.is_some() {
-                self.debug_report_loader.take().unwrap().destroy_debug_report_callback_ext(
+                self.debug_report_loader.take().unwrap().destroy_debug_report_callback(
                     self.debug_report.take().unwrap(), None);
             }
             self.instance.destroy_instance(None);
@@ -99,7 +99,7 @@ impl Instance {
 
             let debug_report_loader = DebugReport::new(&entry, &instance);
             let debug_report = unsafe {
-                debug_report_loader.create_debug_report_callback_ext(
+                debug_report_loader.create_debug_report_callback(
                     &debug_info,
                     None)
                     .unwrap()

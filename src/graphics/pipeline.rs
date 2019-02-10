@@ -1,8 +1,5 @@
-use std::cell::RefCell;
-use std::ffi::CString;
-use std::rc::Rc;
-use ash::version::DeviceV1_0;
-use ash::vk;
+use std::{cell::RefCell, ffi::CString, rc::Rc};
+use ash::{vk, version::DeviceV1_0};
 use super::{Device, Material, RenderPass};
 
 /// Represents the flow of the graphics pipeline from the vertex to fragment stage.

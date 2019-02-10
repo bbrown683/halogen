@@ -1,6 +1,5 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use ash::extensions::Swapchain;
+use std::{cell::RefCell, rc::Rc};
+use ash::extensions::khr::Swapchain;
 use ash::version::{InstanceV1_0, DeviceV1_0};
 use ash::vk;
 use super::{Instance, Queue};

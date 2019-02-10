@@ -1,6 +1,4 @@
-use std::cell::RefCell;
-use std::default::Default;
-use std::rc::Rc;
+use std::{cell::RefCell, default::Default, rc::Rc};
 use ash::version::DeviceV1_0;
 use ash::vk;
 use super::Device;

@@ -1,12 +1,8 @@
-use std::cell::RefCell;
-use std::iter;
-use std::rc::Rc;
-use ash::extensions::{Surface as SurfaceLoader, Swapchain as SwapchainLoader};
+use std::{cell::RefCell, iter, rc::Rc};
+use ash::extensions::{khr::Surface as SurfaceLoader, khr::Swapchain as SwapchainLoader};
 use ash::version::DeviceV1_0;
 use ash::vk::{self, Result as VkResult};
-use super::{Device, Instance, Queue};
-use super::util::select_color_format;
-use super::platform::{create_surface, get_required_instance_extensions};
+use super::{Device, Instance, Queue, platform::create_surface, platform::get_required_instance_extensions, util::select_color_format};
 
 /// Provides a brief overview of why a swapchain failed to be created.
 pub enum SwapchainCreationError {
@@ -45,8 +41,8 @@ impl Drop for Swapchain {
             for fence in self.acquire_fences.clone() {
                 self.device.borrow().get_ash_device().destroy_fence(fence, None);
             }
-            self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
-            self.surface_loader.destroy_surface_khr(self.surface, None);
+            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
+            self.surface_loader.destroy_surface(self.surface, None);
         }
         info!("Dropped Swapchain")
     }
@@ -69,7 +65,7 @@ impl Swapchain {
             instance.borrow().get_ash_instance(), window);
 
         let supports_present = unsafe {
-            surface_loader.get_physical_device_surface_support_khr(
+            surface_loader.get_physical_device_surface_support(
                 device.borrow().get_physical_device(),
                 0,
                 surface)
@@ -83,17 +79,17 @@ impl Swapchain {
         // Grab surface capabilities, formats, and present modes.
         let (capabilities, formats, present_modes) = unsafe {
             let capabilities = surface_loader
-                .get_physical_device_surface_capabilities_khr(
+                .get_physical_device_surface_capabilities(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
             let formats = surface_loader
-                .get_physical_device_surface_formats_khr(
+                .get_physical_device_surface_formats(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
             let present_modes = surface_loader
-                .get_physical_device_surface_present_modes_khr(
+                .get_physical_device_surface_present_modes(
                     device.borrow().get_physical_device(),
                     surface)
                 .unwrap();
@@ -121,7 +117,7 @@ impl Swapchain {
             .clipped(true);
         let swapchain = unsafe {
             swapchain_loader
-                .create_swapchain_khr(&swapchain_info, None)
+                .create_swapchain(&swapchain_info, None)
                 .expect("Failed to create swapchain")
         };
 
@@ -154,7 +150,7 @@ impl Swapchain {
 
         let images = unsafe {
             swapchain_loader
-                .get_swapchain_images_khr(swapchain)
+                .get_swapchain_images(swapchain)
                 .unwrap()
         };
 
@@ -195,7 +191,7 @@ impl Swapchain {
                 .unwrap();
             // Attempt to acquire the next image from the swapchain.
             self.swapchain_loader
-                .acquire_next_image_khr(
+                .acquire_next_image(
                     self.swapchain,
                     u64::max_value(),
                     // Signal this semaphore on completion. Present queue waits for this to complete before submission.
@@ -225,7 +221,7 @@ impl Swapchain {
             .build();
         // TODO: Use value to validate present status.
         let present_status = unsafe {
-            self.swapchain_loader.queue_present_khr(
+            self.swapchain_loader.queue_present(
                 self.present_queue.borrow().get_queue_raw(),
                 &present_info)
         };
@@ -239,17 +235,17 @@ impl Swapchain {
     pub fn recreate(&mut self) {
         unsafe {
             self.capabilities = self.surface_loader
-                .get_physical_device_surface_capabilities_khr(
+                .get_physical_device_surface_capabilities(
                     self.device.borrow().get_physical_device(),
                     self.surface)
                 .unwrap();
             self.formats = self.surface_loader
-                .get_physical_device_surface_formats_khr(
+                .get_physical_device_surface_formats(
                     self.device.borrow().get_physical_device(),
                     self.surface)
                 .unwrap();
             self.present_modes = self.surface_loader
-                .get_physical_device_surface_present_modes_khr(
+                .get_physical_device_surface_present_modes(
                     self.device.borrow().get_physical_device(),
                     self.surface)
                 .unwrap();
@@ -273,15 +269,15 @@ impl Swapchain {
             .clipped(true);
         self.swapchain = unsafe {
             let new_swapchain = self.swapchain_loader
-                .create_swapchain_khr(&swapchain_info, None)
+                .create_swapchain(&swapchain_info, None)
                 .expect("Failed to create swapchain");
-            self.swapchain_loader.destroy_swapchain_khr(self.swapchain, None);
+            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
             (new_swapchain)
         };
 
         self.images = unsafe {
             self.swapchain_loader
-                .get_swapchain_images_khr(self.swapchain)
+                .get_swapchain_images(self.swapchain)
                 .unwrap()
         };
     }

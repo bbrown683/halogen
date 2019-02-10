@@ -1,5 +1,5 @@
 use std::os::raw::c_void;
-use ash::extensions::{Surface, DebugReport, XlibSurface};
+use ash::extensions::{ext::DebugReport, khr::Surface, khr::XlibSurface};
 use ash::version::{EntryV1_0, InstanceV1_0};
 use ash::vk;
 use winit::os::unix::WindowExt;
@@ -15,7 +15,7 @@ pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, 
 
     let xlib_surface_loader = XlibSurface::new(entry, instance);
     unsafe {
-        xlib_surface_loader.create_xlib_surface_khr(&xlib_create_info, None)
+        xlib_surface_loader.create_xlib_surface(&xlib_create_info, None)
             .expect("Failed to create surface")
     }
 }

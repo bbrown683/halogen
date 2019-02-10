@@ -1,5 +1,5 @@
 use std::os::raw::c_void;
-use ash::extensions::{Surface, DebugReport, Win32Surface};
+use ash::extensions::{ext::DebugReport, khr::Surface, khr::Win32Surface};
 use ash::version::{EntryV1_0, InstanceV1_0};
 use ash::vk;
 use winit::os::windows::WindowExt;
@@ -12,7 +12,7 @@ pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, 
         .build();
     let win32_surface_loader = Win32Surface::new(entry, instance);
     unsafe {
-        win32_surface_loader.create_win32_surface_khr(&win32_create_info, None)
+        win32_surface_loader.create_win32_surface(&win32_create_info, None)
             .expect("Failed to create surface")
     }
 }

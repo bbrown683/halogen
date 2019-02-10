@@ -1,5 +1,4 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 use ash::version::DeviceV1_0;
 use ash::vk;
 use super::{Device, Framebuffer, Pipeline, Queue, RenderPass};
