@@ -55,10 +55,4 @@ fn main() {
         &renderer.begin_frame();
         &renderer.end_frame();
     }
-
-    let result = audio::run();
-    match result {
-        Err(e) => info!("{:?}", e.description()),
-        Ok(e) => info!("Ok")
-    }
 }

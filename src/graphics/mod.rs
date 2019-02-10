@@ -22,7 +22,7 @@ use self::cmd::{CmdBuffer, CmdPool, CmdState};
 use self::device::{Device, DeviceCreationError};
 use self::framebuffer::{Framebuffer, FramebufferBuilder};
 use self::instance::Instance;
-use self::material::{ColoredMaterial, ColoredVertex, Material, MaterialType, TexturedMaterial, TexturedVertex, ShaderCache, VertexType};
+use self::material::{ColoredMaterial, ColoredVertex, Material, MaterialType, TexturedMaterial, TexturedVertex, VertexType};
 use self::pass::{RenderPass, RenderPassBuilder};
 use self::pipeline::{Pipeline, PipelineBuilder};
 use self::queue::Queue;

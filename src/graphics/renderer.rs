@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
 use super::{ColoredMaterial, CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
-            PipelineBuilder, RenderPass, RenderPassBuilder, ShaderCache, Swapchain, Queue};
+            PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
 /// The highest level of the graphics module, the `Renderer` manages all render state.
@@ -14,17 +14,19 @@ pub struct Renderer {
     compute_queue : Option<Rc<RefCell<Queue>>>,
     graphics_queue : Option<Rc<RefCell<Queue>>>,
     transfer_queue : Option<Rc<RefCell<Queue>>>,
-    shader_cache : Option<ShaderCache>,
     swapchain : Option<Swapchain>,
-    default_render_pass: Option<Rc<RefCell<RenderPass>>>,
+    render_pass: Option<Rc<RefCell<RenderPass>>>,
     colored_graphics_pipeline : Option<Pipeline>,
     framebuffers : Option<Vec<Framebuffer>>,
     graphics_pool : Option<Rc<RefCell<CmdPool>>>,
     graphics_buffer : Option<CmdBuffer>,
+    colored_material : Option<ColoredMaterial>,
 }
 
 impl Drop for Renderer {
     fn drop(&mut self) {
+        self.colored_material.take();
+        debug_assert!(self.colored_material.is_none());
         self.graphics_buffer.take();
         debug_assert!(self.graphics_buffer.is_none());
         self.graphics_pool.take();
@@ -33,10 +35,8 @@ impl Drop for Renderer {
         debug_assert!(self.framebuffers.is_none());
         self.colored_graphics_pipeline.take();
         debug_assert!(self.colored_graphics_pipeline.is_none());
-        self.default_render_pass.take();
-        debug_assert!(self.default_render_pass.is_none());
-        self.shader_cache.take();
-        debug_assert!(self.shader_cache.is_none());
+        self.render_pass.take();
+        debug_assert!(self.render_pass.is_none());
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
         self.compute_queue.take();
@@ -61,7 +61,7 @@ impl CapturedEvent for Renderer {
         for image in self.swapchain.as_ref().unwrap().get_images() {
             self.framebuffers.as_mut().unwrap().push(FramebufferBuilder::new(
                 Rc::clone(&self.device.clone().unwrap()),
-                Rc::clone(&self.default_render_pass.clone().unwrap()),
+                Rc::clone(&self.render_pass.clone().unwrap()),
                 image,
                 self.swapchain.as_ref().unwrap().get_surface_format().format,
                 self.swapchain.as_ref().unwrap().get_capabilities().current_extent)
@@ -104,26 +104,22 @@ impl Renderer {
             2).ok()
             .unwrap();
 
-        let default_render_pass = Rc::new(RefCell::new(RenderPassBuilder::new(
+        let render_pass = Rc::new(RefCell::new(RenderPassBuilder::new(
             Rc::clone(&device))
             .add_color_attachment(swapchain.get_surface_format().format)
             .build()));
 
-        let shader_cache = ShaderCache::new(Rc::clone(&device))
-            .add_shader_from_bytes(include_bytes!("../assets/shaders/vert.spv").to_vec())
-            .add_shader_from_bytes(include_bytes!("../assets/shaders/frag.spv").to_vec());
-
-        let colored_material = ColoredMaterial::new();
+        let colored_material = ColoredMaterial::new(Rc::clone(&device));
 
         let colored_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
-            .build_graphics(&default_render_pass.borrow(), &colored_material, swapchain.get_capabilities().current_extent);
+            .build_graphics(&render_pass.borrow(), &colored_material, swapchain.get_capabilities().current_extent);
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();
         for image in swapchain.get_images() {
             framebuffers.push(FramebufferBuilder::new(
                 Rc::clone(&device),
-                Rc::clone(&default_render_pass),
+                Rc::clone(&render_pass),
                 image,
                 swapchain.get_surface_format().format,
                 swapchain.get_capabilities().current_extent
@@ -145,13 +141,13 @@ impl Renderer {
             compute_queue: Some(compute_queue),
             graphics_queue: Some(graphics_queue),
             transfer_queue: Some(transfer_queue),
-            shader_cache : Some(shader_cache),
             swapchain: Some(swapchain),
-            default_render_pass: Some(default_render_pass),
+            render_pass: Some(render_pass),
             colored_graphics_pipeline : Some(colored_graphics_pipeline),
             framebuffers: Some(framebuffers),
             graphics_pool: Some(graphics_pool),
             graphics_buffer: Some(graphics_buffer),
+            colored_material: Some(colored_material)
         }
     }
 
@@ -167,7 +163,7 @@ impl Renderer {
             .unwrap()
             .record_graphics(
                 cmd_state,
-                &self.default_render_pass.as_ref().unwrap().borrow(),
+                &self.render_pass.as_ref().unwrap().borrow(),
                 self.framebuffers.as_ref().unwrap().get(next_image.clone() as usize).unwrap(),
                 self.colored_graphics_pipeline.as_ref().unwrap());
     }

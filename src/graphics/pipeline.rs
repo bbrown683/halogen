@@ -1,9 +1,5 @@
 use std::cell::RefCell;
-use std::default::Default;
 use std::ffi::CString;
-use std::fs::File;
-use std::io::Read;
-use std::mem::size_of;
 use std::rc::Rc;
 use ash::version::DeviceV1_0;
 use ash::vk;
@@ -59,7 +55,6 @@ impl PipelineBuilder {
 
     /// Builds a graphics pipeline.
     pub fn build_graphics<M: Material>(self, render_pass : &RenderPass, material : &M, extent : vk::Extent2D) -> Pipeline {
-        let entry_point = CString::new("main").unwrap();
         let color_blend_attachments = vec![
             vk::PipelineColorBlendAttachmentState::builder()
                 .color_write_mask(vk::ColorComponentFlags::R | vk::ColorComponentFlags::G |
@@ -101,6 +96,9 @@ impl PipelineBuilder {
                 .unwrap()
         };
 
+        let stages = material.pipeline_shader_stages();
+        let vertex_input_stage = material.pipeline_vertex_input_state();
+
         // Build pipeline creation info.
         let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
             .color_blend_state(&color_blend_info)
@@ -109,19 +107,18 @@ impl PipelineBuilder {
             .multisample_state(&multisample_info)
             .rasterization_state(&rasterizer_info)
             .render_pass(render_pass.get_render_pass_raw())
-            .stages(material.pipeline_shader_stages().as_slice())
-            .vertex_input_state(&material.pipeline_vertex_input_state())
+            .stages(stages.as_slice())
+            .vertex_input_state(&vertex_input_stage)
             .viewport_state(&viewport_info)
             .build();
 
         // Create pipeline and destroy unneeded shader modules.
         let pipeline = unsafe {
-            let pipeline = self.device
+            self.device
                 .borrow()
                 .get_ash_device()
                 .create_graphics_pipelines(vk::PipelineCache::null(), &[pipeline_info], None)
-                .expect("Failed to create pipeline").remove(0);
-            (pipeline)
+                .expect("Failed to create pipeline").remove(0)
         };
         Pipeline { device: self.device,
             pipeline,

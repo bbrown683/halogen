@@ -18,6 +18,5 @@ pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, 
 }
 
 pub fn get_required_instance_extensions() -> Vec<*const i8> {
-    vec![Surface::name().as_ptr(), Win32Surface::name().as_ptr(), DebugReport::name().as_ptr()]
-        as Vec<*const i8>
+    vec![Surface::name().as_ptr(), Win32Surface::name().as_ptr(), DebugReport::name().as_ptr()] as Vec<*const i8>
 }
