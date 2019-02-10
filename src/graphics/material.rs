@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ffi::CString, fs::File, io::Read, rc::Rc};
+use std::{cell::RefCell, ffi::CString, fs::File, io::Read, mem::size_of, rc::Rc};
 use ash::version::DeviceV1_0;
 use ash::vk;
 use nalgebra::{Vector2, Vector3, Vector4};
@@ -12,34 +12,28 @@ fn create_shader_module(device : &Rc<RefCell<Device>>, bytes : Vec<u8>) -> vk::S
         ..Default::default()
     };
 
-    let shader_module = unsafe {
+    unsafe {
         device
             .borrow()
             .get_ash_device()
             .create_shader_module(&module_create_info, None)
             .unwrap()
-    };
-    shader_module
+    }
 }
-
-pub trait Vertex {}
 
 pub struct ColoredVertex {
     position : Vector3<f32>,
     color : Vector4<f32>,
 }
 
-impl Vertex for ColoredVertex {}
-
 pub struct TexturedVertex {
     position : Vector3<f32>,
     texture_coord : Vector2<f32>,
 }
 
-impl Vertex for TexturedVertex {}
-
 /// A material describes the appearance of an object in a rendered space.
 pub trait Material {
+    fn vertex_buffer_size(&self) -> vk::DeviceSize;
     fn pipeline_shader_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo>;
     fn pipeline_vertex_input_state(&self) ->  vk::PipelineVertexInputStateCreateInfo;
 }
@@ -65,8 +59,8 @@ impl Drop for ColoredMaterial {
 }
 
 impl Material for ColoredMaterial {
+    fn vertex_buffer_size(&self) -> vk::DeviceSize { size_of::<ColoredVertex>() as vk::DeviceSize }
     fn pipeline_shader_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo> { self.pipeline_shader_stages.clone() }
-
     fn pipeline_vertex_input_state(&self) -> vk::PipelineVertexInputStateCreateInfo { self.pipeline_vertex_input_state }
 }
 
@@ -98,13 +92,11 @@ impl ColoredMaterial {
 pub struct TexturedMaterial;
 
 impl Material for TexturedMaterial {
+    fn vertex_buffer_size(&self) -> vk::DeviceSize { size_of::<TexturedVertex>() as vk::DeviceSize }
     fn pipeline_shader_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo> {
         unimplemented!()
     }
-
-    fn pipeline_vertex_input_state(&self) -> vk::PipelineVertexInputStateCreateInfo {
-        unimplemented!()
-    }
+    fn pipeline_vertex_input_state(&self) -> vk::PipelineVertexInputStateCreateInfo { unimplemented!() }
 }
 
 impl TexturedMaterial {

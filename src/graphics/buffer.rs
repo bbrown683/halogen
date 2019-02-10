@@ -1,16 +1,86 @@
 use std::{cell::RefCell, mem::size_of, rc::Rc};
 use ash::version::DeviceV1_0;
 use ash::vk;
-use super::{Device, Vertex};
+use super::{Device, Material, util::find_memory_type_index};
+
+pub enum BufferCreationError {
+    AllocationFailed,
+    UnsupportedMemoryType,
+}
 
 pub struct VertexBuffer {
     device : Rc<RefCell<Device>>,
+    buffer : vk::Buffer,
+    buffer_memory : vk::DeviceMemory,
+}
 
+impl Drop for VertexBuffer {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.borrow().get_ash_device().destroy_buffer(self.buffer, None);
+            self.device.borrow().get_ash_device().free_memory(self.buffer_memory, None);
+        }
+        info!("Dropped VertexBuffer")
+    }
 }
 
 impl VertexBuffer {
-    pub fn new<V: Vertex>(device : Rc<RefCell<Device>>) -> Self {
-        let size = size_of::<V>();
-        Self { device }
+    pub fn new<M: Material>(device : Rc<RefCell<Device>>, material : &M) -> Result<Self,BufferCreationError> {
+        let buffer_info = vk::BufferCreateInfo::builder()
+            .size(material.vertex_buffer_size())
+            .sharing_mode(vk::SharingMode::EXCLUSIVE)
+            .usage(vk::BufferUsageFlags::VERTEX_BUFFER)
+            .build();
+
+        let (buffer, memory_requirements) = unsafe {
+            let buffer = device
+                .borrow()
+                .get_ash_device()
+                .create_buffer(&buffer_info, None)
+                .expect("Failed to create buffer");
+            let memory_requirements= device.borrow().get_ash_device().get_buffer_memory_requirements(buffer);
+            (buffer, memory_requirements)
+        };
+
+        let memory_properties = device.borrow().get_memory_properties();
+        let memory_index = find_memory_type_index(&memory_requirements, &memory_properties, vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::HOST_VISIBLE);
+        match memory_index {
+            Some(i) => {
+                let allocate_info = vk::MemoryAllocateInfo::builder()
+                    .memory_type_index(i)
+                    .allocation_size(memory_requirements.size)
+                    .build();
+                let buffer_memory = unsafe {
+                    let buffer_memory = device
+                        .borrow()
+                        .get_ash_device()
+                        .allocate_memory(&allocate_info, None)
+                        .expect("Failed to allocate memory");
+                    device
+                        .borrow()
+                        .get_ash_device()
+                        .bind_buffer_memory(buffer, buffer_memory, 0)
+                        .expect("Failed to bind buffer memory");
+                    device
+                        .borrow()
+                        .get_ash_device()
+                        .map_memory(buffer_memory, 0, buffer_info.size, vk::MemoryMapFlags::empty())
+                        .expect("Failed to map buffer memory");
+                    // TODO: memcpy
+                    device
+                        .borrow()
+                        .get_ash_device()
+                        .unmap_memory(buffer_memory);
+                    buffer_memory
+                };
+
+                Ok(Self {
+                    device,
+                    buffer,
+                    buffer_memory
+                })
+            },
+            None => Err(BufferCreationError::UnsupportedMemoryType),
+        }
     }
 }

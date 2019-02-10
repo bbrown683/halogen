@@ -24,7 +24,7 @@ use self::cmd::{CmdBuffer, CmdPool, CmdState};
 use self::device::{Device, DeviceCreationError};
 use self::framebuffer::{Framebuffer, FramebufferBuilder};
 use self::instance::Instance;
-use self::material::{ColoredMaterial, ColoredVertex, Material, TexturedMaterial, TexturedVertex, Vertex};
+use self::material::{ColoredMaterial, ColoredVertex, Material, TexturedMaterial, TexturedVertex};
 use self::pass::{RenderPass, RenderPassBuilder};
 use self::pipeline::{Pipeline, PipelineBuilder};
 use self::queue::Queue;

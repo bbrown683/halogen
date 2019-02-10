@@ -4,7 +4,6 @@ use ash::vk;
 use super::{Device, RenderPass};
 
 /// A framebuffer manages an image created by the swapchain.
-// TODO: Create builder for this object due to somewhat complicated state.
 pub struct Framebuffer {
     device : Rc<RefCell<Device>>,
     framebuffer : vk::Framebuffer,
