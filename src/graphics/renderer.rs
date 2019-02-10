@@ -3,8 +3,8 @@ use std::iter;
 use std::rc::Rc;
 use std::sync::{Arc,Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
-use super::{CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
-            PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
+use super::{ColoredMaterial, CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
+            PipelineBuilder, RenderPass, RenderPassBuilder, ShaderCache, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
 /// The highest level of the graphics module, the `Renderer` manages all render state.
@@ -14,9 +14,10 @@ pub struct Renderer {
     compute_queue : Option<Rc<RefCell<Queue>>>,
     graphics_queue : Option<Rc<RefCell<Queue>>>,
     transfer_queue : Option<Rc<RefCell<Queue>>>,
+    shader_cache : Option<ShaderCache>,
     swapchain : Option<Swapchain>,
-    default_render_pass : Option<Rc<RefCell<RenderPass>>>,
-    default_graphics_pipeline : Option<Pipeline>,
+    default_render_pass: Option<Rc<RefCell<RenderPass>>>,
+    colored_graphics_pipeline : Option<Pipeline>,
     framebuffers : Option<Vec<Framebuffer>>,
     graphics_pool : Option<Rc<RefCell<CmdPool>>>,
     graphics_buffer : Option<CmdBuffer>,
@@ -30,10 +31,12 @@ impl Drop for Renderer {
         debug_assert!(self.graphics_pool.is_none());
         self.framebuffers.take();
         debug_assert!(self.framebuffers.is_none());
-        self.default_graphics_pipeline.take();
-        debug_assert!(self.default_graphics_pipeline.is_none());
+        self.colored_graphics_pipeline.take();
+        debug_assert!(self.colored_graphics_pipeline.is_none());
         self.default_render_pass.take();
         debug_assert!(self.default_render_pass.is_none());
+        self.shader_cache.take();
+        debug_assert!(self.shader_cache.is_none());
         self.swapchain.take();
         debug_assert!(self.swapchain.is_none());
         self.compute_queue.take();
@@ -106,11 +109,14 @@ impl Renderer {
             .add_color_attachment(swapchain.get_surface_format().format)
             .build()));
 
-        let default_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
+        let shader_cache = ShaderCache::new(Rc::clone(&device))
             .add_shader_from_bytes(include_bytes!("../assets/shaders/vert.spv").to_vec())
-            .add_shader_from_bytes(include_bytes!("../assets/shaders/frag.spv").to_vec())
-            .build_graphics(&default_render_pass.borrow(),
-                            swapchain.get_capabilities().current_extent);
+            .add_shader_from_bytes(include_bytes!("../assets/shaders/frag.spv").to_vec());
+
+        let colored_material = ColoredMaterial::new();
+
+        let colored_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
+            .build_graphics(&default_render_pass.borrow(), &colored_material, swapchain.get_capabilities().current_extent);
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();
@@ -139,9 +145,10 @@ impl Renderer {
             compute_queue: Some(compute_queue),
             graphics_queue: Some(graphics_queue),
             transfer_queue: Some(transfer_queue),
+            shader_cache : Some(shader_cache),
             swapchain: Some(swapchain),
             default_render_pass: Some(default_render_pass),
-            default_graphics_pipeline : Some(default_graphics_pipeline),
+            colored_graphics_pipeline : Some(colored_graphics_pipeline),
             framebuffers: Some(framebuffers),
             graphics_pool: Some(graphics_pool),
             graphics_buffer: Some(graphics_buffer),
@@ -162,7 +169,7 @@ impl Renderer {
                 cmd_state,
                 &self.default_render_pass.as_ref().unwrap().borrow(),
                 self.framebuffers.as_ref().unwrap().get(next_image.clone() as usize).unwrap(),
-                self.default_graphics_pipeline.as_ref().unwrap());
+                self.colored_graphics_pipeline.as_ref().unwrap());
     }
 
     pub fn end_frame(&self) {

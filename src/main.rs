@@ -7,7 +7,6 @@ extern crate log4rs;
 extern crate nalgebra;
 extern crate num_cpus;
 extern crate rayon;
-extern crate spirv_reflect;
 extern crate winit;
 
 ///

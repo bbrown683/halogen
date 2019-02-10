@@ -11,8 +11,6 @@ pub mod pipeline;
 pub mod platform;
 /// Operations for a queue, such as submitting graphics, compute, or transfer operations for execution by the GPU.
 pub mod queue;
-/// SPIRV reflection helpers. Utilizes [spirv-reflect-rs](https://github.com/gwihlidal/spirv-reflect-rs).
-pub mod reflect;
 /// Manages a Vulkan surface and swapchain, presenting the acquired images to the screen.
 pub mod swapchain;
 pub mod renderer;
@@ -24,7 +22,7 @@ use self::cmd::{CmdBuffer, CmdPool, CmdState};
 use self::device::{Device, DeviceCreationError};
 use self::framebuffer::{Framebuffer, FramebufferBuilder};
 use self::instance::Instance;
-use self::material::{ColoredMaterial, TexturedMaterial};
+use self::material::{ColoredMaterial, ColoredVertex, Material, MaterialType, TexturedMaterial, TexturedVertex, ShaderCache, VertexType};
 use self::pass::{RenderPass, RenderPassBuilder};
 use self::pipeline::{Pipeline, PipelineBuilder};
 use self::queue::Queue;
