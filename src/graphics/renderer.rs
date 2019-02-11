@@ -56,13 +56,13 @@ impl CapturedEvent for Renderer {
     fn on_resize(&mut self, _size : LogicalSize) {
         self.swapchain.as_mut().unwrap().recreate();
         self.framebuffers.as_mut().unwrap().clear();
-        for image in self.swapchain.as_ref().unwrap().get_images() {
+        for image in self.swapchain.as_ref().unwrap().images() {
             self.framebuffers.as_mut().unwrap().push(FramebufferBuilder::new(
                 Rc::clone(&self.device.clone().unwrap()),
                 Rc::clone(&self.render_pass.clone().unwrap()),
                 image,
-                self.swapchain.as_ref().unwrap().get_surface_format().format,
-                self.swapchain.as_ref().unwrap().get_capabilities().current_extent)
+                self.swapchain.as_ref().unwrap().surface_format().format,
+                self.swapchain.as_ref().unwrap().capabilities().current_extent)
                 .build());
         }
     }
@@ -85,13 +85,13 @@ impl Renderer {
         // Create our queues.
         let compute_queue = Rc::new(RefCell::new(Queue::new(
             Rc::clone(&device),
-            device.borrow().get_compute_queue_index())));
+            device.borrow().compute_queue_index())));
         let graphics_queue = Rc::new(RefCell::new(Queue::new(
             Rc::clone(&device),
-            device.borrow().get_graphics_queue_index())));
+            device.borrow().graphics_queue_index())));
         let transfer_queue = Rc::new(RefCell::new(Queue::new(
             Rc::clone(&device),
-            device.borrow().get_transfer_queue_index())));
+            device.borrow().transfer_queue_index())));
 
         // Create the swapchain.
         let swapchain = Swapchain::new(
@@ -104,23 +104,23 @@ impl Renderer {
 
         let render_pass = Rc::new(RefCell::new(RenderPassBuilder::new(
             Rc::clone(&device))
-            .add_color_attachment(swapchain.get_surface_format().format)
+            .add_color_attachment(swapchain.surface_format().format)
             .build()));
 
         let colored_material = ColoredMaterial::new(Rc::clone(&device));
 
         let colored_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
-            .build_graphics(&render_pass.borrow(), &colored_material, swapchain.get_capabilities().current_extent);
+            .build_graphics(&render_pass.borrow(), &colored_material, swapchain.capabilities().current_extent);
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();
-        for image in swapchain.get_images() {
+        for image in swapchain.images() {
             framebuffers.push(FramebufferBuilder::new(
                 Rc::clone(&device),
                 Rc::clone(&render_pass),
                 image,
-                swapchain.get_surface_format().format,
-                swapchain.get_capabilities().current_extent
+                swapchain.surface_format().format,
+                swapchain.capabilities().current_extent
             ).build());
         }
 
@@ -152,8 +152,8 @@ impl Renderer {
     pub fn begin_frame(&mut self) {
         let next_image = &self.swapchain.as_mut().unwrap().acquire_next_image();
         let cmd_state = CmdState {
-            format: self.swapchain.as_ref().unwrap().get_surface_format().format,
-            extent: self.swapchain.as_ref().unwrap().get_capabilities().current_extent
+            format: self.swapchain.as_ref().unwrap().surface_format().format,
+            extent: self.swapchain.as_ref().unwrap().capabilities().current_extent
         };
 
         self.graphics_buffer
@@ -173,8 +173,8 @@ impl Renderer {
             .unwrap()
             .borrow()
             .submit(self.graphics_buffer.as_ref().unwrap(),
-                    Some(self.swapchain.as_ref().unwrap().get_current_acquire_semaphore()),
-                    Some(self.swapchain.as_ref().unwrap().get_current_acquire_fence()));
+                    Some(self.swapchain.as_ref().unwrap().current_acquire_semaphore()),
+                    Some(self.swapchain.as_ref().unwrap().current_acquire_fence()));
         self.swapchain.as_ref().unwrap().present();
     }
 }

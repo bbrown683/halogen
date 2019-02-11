@@ -34,12 +34,12 @@ pub struct Swapchain {
 impl Drop for Swapchain {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
+            self.device.borrow().ash_device().device_wait_idle().unwrap();
             for semaphore in self.acquire_semaphores.clone() {
-                self.device.borrow().get_ash_device().destroy_semaphore(semaphore, None);
+                self.device.borrow().ash_device().destroy_semaphore(semaphore, None);
             }
             for fence in self.acquire_fences.clone() {
-                self.device.borrow().get_ash_device().destroy_fence(fence, None);
+                self.device.borrow().ash_device().destroy_fence(fence, None);
             }
             self.swapchain_loader.destroy_swapchain(self.swapchain, None);
             self.surface_loader.destroy_surface(self.surface, None);
@@ -58,15 +58,15 @@ impl Swapchain {
                image_count : u32) -> Result<Self,SwapchainCreationError> {
         // Initializes surface entry points and creates one.
         let surface_loader = SurfaceLoader::new(
-            instance.borrow().get_ash_entry(),
-            instance.borrow().get_ash_instance());
+            instance.borrow().ash_entry(),
+            instance.borrow().ash_instance());
         let surface = create_surface(
-            instance.borrow().get_ash_entry(),
-            instance.borrow().get_ash_instance(), window);
+            instance.borrow().ash_entry(),
+            instance.borrow().ash_instance(), window);
 
         let supports_present = unsafe {
             surface_loader.get_physical_device_surface_support(
-                device.borrow().get_physical_device(),
+                device.borrow().physical_device(),
                 0,
                 surface)
         };
@@ -80,25 +80,25 @@ impl Swapchain {
         let (capabilities, formats, present_modes) = unsafe {
             let capabilities = surface_loader
                 .get_physical_device_surface_capabilities(
-                    device.borrow().get_physical_device(),
+                    device.borrow().physical_device(),
                     surface)
                 .unwrap();
             let formats = surface_loader
                 .get_physical_device_surface_formats(
-                    device.borrow().get_physical_device(),
+                    device.borrow().physical_device(),
                     surface)
                 .unwrap();
             let present_modes = surface_loader
                 .get_physical_device_surface_present_modes(
-                    device.borrow().get_physical_device(),
+                    device.borrow().physical_device(),
                     surface)
                 .unwrap();
             (capabilities, formats, present_modes)
         };
 
         let swapchain_loader = SwapchainLoader::new(
-            instance.borrow().get_ash_instance(),
-            device.borrow().get_ash_device());
+            instance.borrow().ash_instance(),
+            device.borrow().ash_device());
 
         let surface_format = select_color_format(
             formats.clone(),
@@ -128,7 +128,7 @@ impl Swapchain {
             unsafe {
                 device
                     .borrow()
-                    .get_ash_device()
+                    .ash_device()
                     .create_semaphore(&semaphore_info, None)
                     .expect("Failed to create semaphore")
             })
@@ -141,7 +141,7 @@ impl Swapchain {
             unsafe {
                 device
                     .borrow()
-                    .get_ash_device()
+                    .ash_device()
                     .create_fence(&fence_info, None)
                     .expect("Failed to create fence")
             })
@@ -181,12 +181,12 @@ impl Swapchain {
             // Wait for these fences to be signalled then reset them to a non-signalled state.
             self.device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .wait_for_fences(&[self.acquire_fences.get(self.current_frame as usize).unwrap().clone()], true, u64::max_value())
                 .unwrap();
             self.device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .reset_fences(&[self.acquire_fences.get(self.current_frame as usize).unwrap().clone()])
                 .unwrap();
             // Attempt to acquire the next image from the swapchain.
@@ -217,12 +217,12 @@ impl Swapchain {
             .image_indices(&[self.current_image])
             .swapchains(&[self.swapchain])
             // Wait on submission to be completed before presenting.
-            .wait_semaphores(&[self.present_queue.borrow().get_submit_semaphore()])
+            .wait_semaphores(&[self.present_queue.borrow().submit_semaphore_raw()])
             .build();
         // TODO: Use value to validate present status.
         let present_status = unsafe {
             self.swapchain_loader.queue_present(
-                self.present_queue.borrow().get_queue_raw(),
+                self.present_queue.borrow().queue_raw(),
                 &present_info)
         };
         match present_status {
@@ -236,17 +236,17 @@ impl Swapchain {
         unsafe {
             self.capabilities = self.surface_loader
                 .get_physical_device_surface_capabilities(
-                    self.device.borrow().get_physical_device(),
+                    self.device.borrow().physical_device(),
                     self.surface)
                 .unwrap();
             self.formats = self.surface_loader
                 .get_physical_device_surface_formats(
-                    self.device.borrow().get_physical_device(),
+                    self.device.borrow().physical_device(),
                     self.surface)
                 .unwrap();
             self.present_modes = self.surface_loader
                 .get_physical_device_surface_present_modes(
-                    self.device.borrow().get_physical_device(),
+                    self.device.borrow().physical_device(),
                     self.surface)
                 .unwrap();
         }
@@ -283,37 +283,37 @@ impl Swapchain {
     }
 
     /// Returns the images associated with this Swapchain, used in the creation of a Framebuffer.
-    pub fn get_images(&self) -> Vec<vk::Image> {
+    pub fn images(&self) -> Vec<vk::Image> {
         self.images.clone()
     }
 
     /// Returns the current image index which the swapchain is referring to.
-    pub fn get_current_image(&self) -> u32 {
+    pub fn current_image(&self) -> u32 {
         self.current_image
     }
 
     /// Returns the capabilities provided by the surface which initialized this Swapchain.
-    pub fn get_capabilities(&self) -> vk::SurfaceCapabilitiesKHR {
+    pub fn capabilities(&self) -> vk::SurfaceCapabilitiesKHR {
         self.capabilities
     }
 
     /// Returns all formats supported by the surface initialized with the Swapchain.
-    pub fn get_supported_formats(&self) -> Vec<vk::SurfaceFormatKHR> {
+    pub fn supported_formats(&self) -> Vec<vk::SurfaceFormatKHR> {
         self.formats.clone()
     }
 
     /// Returns the surface format which was selected for the swapchain.
-    pub fn get_surface_format(&self) -> vk::SurfaceFormatKHR {
+    pub fn surface_format(&self) -> vk::SurfaceFormatKHR {
         self.surface_format
     }
 
     /// Returns all present modes supported by the surface initialized with the Swapchain.
-    pub fn get_supported_present_modes(&self) -> Vec<vk::PresentModeKHR> {
+    pub fn supported_present_modes(&self) -> Vec<vk::PresentModeKHR> {
         self.present_modes.clone()
     }
 
     /// Returns the semaphore being used by the swapchain.
-    pub fn get_current_acquire_semaphore(&self) -> vk::Semaphore {
+    pub fn current_acquire_semaphore(&self) -> vk::Semaphore {
         self.acquire_semaphores
             .get(self.current_frame as usize)
             .unwrap()
@@ -321,7 +321,7 @@ impl Swapchain {
     }
 
     /// Returns the current fence being used by the swapchain.
-    pub fn get_current_acquire_fence(&self) -> vk::Fence {
+    pub fn current_acquire_fence(&self) -> vk::Fence {
         self.acquire_fences
             .get(self.current_frame as usize)
             .unwrap()

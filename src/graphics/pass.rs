@@ -13,15 +13,15 @@ pub struct RenderPass {
 impl Drop for RenderPass {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
-            self.device.borrow().get_ash_device().destroy_render_pass(self.render_pass, None);
+            self.device.borrow().ash_device().device_wait_idle().unwrap();
+            self.device.borrow().ash_device().destroy_render_pass(self.render_pass, None);
         }
         info!("Dropped RenderPass")
     }
 }
 
 impl RenderPass {
-    pub fn get_render_pass_raw(&self) -> vk::RenderPass {
+    pub fn render_pass_raw(&self) -> vk::RenderPass {
         self.render_pass
     }
 }
@@ -92,7 +92,7 @@ impl RenderPassBuilder {
         let render_pass = unsafe {
             self.device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .create_render_pass(&render_pass_info, None)
                 .expect("Failed to create render pass")
         };

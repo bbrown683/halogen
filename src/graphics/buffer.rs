@@ -17,8 +17,8 @@ pub struct VertexBuffer {
 impl Drop for VertexBuffer {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().destroy_buffer(self.buffer, None);
-            self.device.borrow().get_ash_device().free_memory(self.buffer_memory, None);
+            self.device.borrow().ash_device().destroy_buffer(self.buffer, None);
+            self.device.borrow().ash_device().free_memory(self.buffer_memory, None);
         }
         info!("Dropped VertexBuffer")
     }
@@ -35,14 +35,14 @@ impl VertexBuffer {
         let (buffer, memory_requirements) = unsafe {
             let buffer = device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .create_buffer(&buffer_info, None)
                 .expect("Failed to create buffer");
-            let memory_requirements= device.borrow().get_ash_device().get_buffer_memory_requirements(buffer);
+            let memory_requirements= device.borrow().ash_device().get_buffer_memory_requirements(buffer);
             (buffer, memory_requirements)
         };
 
-        let memory_properties = device.borrow().get_memory_properties();
+        let memory_properties = device.borrow().memory_properties();
         let memory_index = find_memory_type_index(&memory_requirements, &memory_properties, vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::HOST_VISIBLE);
         match memory_index {
             Some(i) => {
@@ -53,23 +53,23 @@ impl VertexBuffer {
                 let buffer_memory = unsafe {
                     let buffer_memory = device
                         .borrow()
-                        .get_ash_device()
+                        .ash_device()
                         .allocate_memory(&allocate_info, None)
                         .expect("Failed to allocate memory");
                     device
                         .borrow()
-                        .get_ash_device()
+                        .ash_device()
                         .bind_buffer_memory(buffer, buffer_memory, 0)
                         .expect("Failed to bind buffer memory");
                     device
                         .borrow()
-                        .get_ash_device()
+                        .ash_device()
                         .map_memory(buffer_memory, 0, buffer_info.size, vk::MemoryMapFlags::empty())
                         .expect("Failed to map buffer memory");
                     // TODO: memcpy
                     device
                         .borrow()
-                        .get_ash_device()
+                        .ash_device()
                         .unmap_memory(buffer_memory);
                     buffer_memory
                 };

@@ -13,16 +13,16 @@ pub struct Framebuffer {
 impl Drop for Framebuffer {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
-            self.device.borrow().get_ash_device().destroy_framebuffer(self.framebuffer, None);
-            self.device.borrow().get_ash_device().destroy_image_view(self.color_view, None);
+            self.device.borrow().ash_device().device_wait_idle().unwrap();
+            self.device.borrow().ash_device().destroy_framebuffer(self.framebuffer, None);
+            self.device.borrow().ash_device().destroy_image_view(self.color_view, None);
         }
         info!("Dropped Framebuffer")
     }
 }
 
 impl Framebuffer {
-    pub fn get_framebuffer_raw(&self) -> vk::Framebuffer {
+    pub fn framebuffer_raw(&self) -> vk::Framebuffer {
         self.framebuffer
     }
 }
@@ -53,7 +53,7 @@ impl FramebufferBuilder {
         let color_view = unsafe {
             device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .create_image_view(&color_view_info, None)
                 .unwrap()
         };
@@ -73,13 +73,13 @@ impl FramebufferBuilder {
             .layers(1)
             .width(self.extent.width)
             .height(self.extent.height)
-            .render_pass(self.render_pass.borrow().get_render_pass_raw())
+            .render_pass(self.render_pass.borrow().render_pass_raw())
             .attachments(&[self.color_view])
             .build();
         let framebuffer = unsafe {
             self.device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .create_framebuffer(&framebuffer_info, None)
                 .expect("Failed to create framebuffer")
         };

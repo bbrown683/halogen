@@ -14,27 +14,24 @@ pub struct Pipeline {
 impl Drop for Pipeline {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().device_wait_idle().unwrap();
-            self.device.borrow().get_ash_device().destroy_pipeline_layout(self.layout, None);
-            self.device.borrow().get_ash_device().destroy_pipeline(self.pipeline, None);
+            self.device.borrow().ash_device().device_wait_idle().unwrap();
+            self.device.borrow().ash_device().destroy_pipeline_layout(self.layout, None);
+            self.device.borrow().ash_device().destroy_pipeline(self.pipeline, None);
         }
         info!("Dropped GraphicsPipeline")
     }
 }
 
 impl Pipeline {
-    pub fn get_pipeline_raw(&self) -> vk::Pipeline {
+    pub fn pipeline_raw(&self) -> vk::Pipeline {
          self.pipeline
     }
-
-    pub fn get_layout_raw(&self) -> vk::PipelineLayout {
+    pub fn layout_raw(&self) -> vk::PipelineLayout {
          self.layout
     }
-
     pub fn supports_compute(&self) -> bool {
         self.supports_compute
     }
-
     pub fn supports_graphics(&self) -> bool {
         self.supports_graphics
     }
@@ -88,7 +85,7 @@ impl PipelineBuilder {
         let layout = unsafe {
             self.device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .create_pipeline_layout(&layout_info, None)
                 .unwrap()
         };
@@ -103,7 +100,7 @@ impl PipelineBuilder {
             .layout(layout)
             .multisample_state(&multisample_info)
             .rasterization_state(&rasterizer_info)
-            .render_pass(render_pass.get_render_pass_raw())
+            .render_pass(render_pass.render_pass_raw())
             .stages(stages.as_slice())
             .vertex_input_state(&vertex_input_stage)
             .viewport_state(&viewport_info)
@@ -113,7 +110,7 @@ impl PipelineBuilder {
         let pipeline = unsafe {
             self.device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .create_graphics_pipelines(vk::PipelineCache::null(), &[pipeline_info], None)
                 .expect("Failed to create pipeline").remove(0)
         };

@@ -15,7 +15,7 @@ fn create_shader_module(device : &Rc<RefCell<Device>>, bytes : Vec<u8>) -> vk::S
     unsafe {
         device
             .borrow()
-            .get_ash_device()
+            .ash_device()
             .create_shader_module(&module_create_info, None)
             .unwrap()
     }
@@ -51,8 +51,8 @@ pub struct ColoredMaterial {
 impl Drop for ColoredMaterial {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().destroy_shader_module(self.vertex_module, None);
-            self.device.borrow().get_ash_device().destroy_shader_module(self.fragment_module, None);
+            self.device.borrow().ash_device().destroy_shader_module(self.vertex_module, None);
+            self.device.borrow().ash_device().destroy_shader_module(self.fragment_module, None);
         }
         info!("Dropped ColoredMaterial")
     }

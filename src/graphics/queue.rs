@@ -12,8 +12,8 @@ pub struct Queue {
 impl Drop for Queue {
     fn drop(&mut self) {
         unsafe {
-            self.device.borrow().get_ash_device().queue_wait_idle(self.queue).unwrap();
-            self.device.borrow().get_ash_device().destroy_semaphore(self.submit_semaphore, None);
+            self.device.borrow().ash_device().queue_wait_idle(self.queue).unwrap();
+            self.device.borrow().ash_device().destroy_semaphore(self.submit_semaphore, None);
         }
         info!("Dropped Queue")
     }
@@ -24,7 +24,7 @@ impl Queue {
         let queue = unsafe {
             device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .get_device_queue(family_index, 0)
         };
 
@@ -32,7 +32,7 @@ impl Queue {
         let submit_semaphore = unsafe {
             device
                 .borrow()
-                .get_ash_device()
+                .ash_device()
                 .create_semaphore(&semaphore_info, None)
                 .expect("Failed to create semaphore")
         };
@@ -45,7 +45,7 @@ impl Queue {
     pub fn submit(&self, cmd_buffer : &CmdBuffer, wait_semaphore : Option<vk::Semaphore>, signal_fence : Option<vk::Fence>) {
         let submit_info = match wait_semaphore {
             Some(semaphore) => vk::SubmitInfo::builder()
-                .command_buffers(&[cmd_buffer.get_cmd_buffer_raw()])
+                .command_buffers(&[cmd_buffer.cmd_buffer_raw()])
                 // Signal this semaphore when submission is completed.
                 .signal_semaphores(&[self.submit_semaphore])
                 // Wait on the image to be acquired before submitting the command buffer.
@@ -53,7 +53,7 @@ impl Queue {
                 .wait_dst_stage_mask(&[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT])
                 .build(),
             None => vk::SubmitInfo::builder()
-                .command_buffers(&[cmd_buffer.get_cmd_buffer_raw()])
+                .command_buffers(&[cmd_buffer.cmd_buffer_raw()])
                 // Signal this semaphore when submission is completed.
                 .signal_semaphores(&[self.submit_semaphore])
                 .wait_dst_stage_mask(&[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT])
@@ -63,13 +63,13 @@ impl Queue {
             match signal_fence {
                 Some(fence) => self.device
                     .borrow()
-                    .get_ash_device()
+                    .ash_device()
                     // Submits to the queue with the specified semaphores and a acquire fence to signal.
                     .queue_submit(self.queue, &[submit_info], fence)
                     .expect("Failed to submit command buffer."),
                 None => self.device
                     .borrow()
-                    .get_ash_device()
+                    .ash_device()
                     // Submits to the queue with the specified semaphores and a acquire fence to signal.
                     .queue_submit(self.queue, &[submit_info], vk::Fence::null())
                     .expect("Failed to submit command buffer."),
@@ -77,14 +77,14 @@ impl Queue {
         }
     }
 
-    pub fn get_queue_raw(&self) -> vk::Queue {
+    pub fn queue_raw(&self) -> vk::Queue {
         self.queue
     }
 
-    pub fn get_family_index(&self) -> u32 {
+    pub fn family_index(&self) -> u32 {
         self.family_index
     }
 
     /// Returns a handle to a semaphore which is signalled when submission to the queue is completed.
-    pub fn get_submit_semaphore(&self) -> vk::Semaphore { self.submit_semaphore }
+    pub fn submit_semaphore_raw(&self) -> vk::Semaphore { self.submit_semaphore }
 }

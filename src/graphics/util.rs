@@ -45,23 +45,21 @@ pub fn find_memory_type_index(memory_req: &vk::MemoryRequirements,
     None
 }
 
-/*
 pub fn get_max_multisampling_value(limits : vk::PhysicalDeviceLimits) -> vk::SampleCountFlags {
     let minimum_samples = limits.framebuffer_color_sample_counts.min(limits.framebuffer_depth_sample_counts);
-    if minimum_samples & vk::SampleCountFlags::TYPE_64 = vk::SampleCountFlags::TYPE_64 {
+    if minimum_samples & vk::SampleCountFlags::TYPE_64 == vk::SampleCountFlags::TYPE_64 {
         return vk::SampleCountFlags::TYPE_64
-    } else if minimum_samples & vk::SampleCountFlags::TYPE_32 {
+    } else if minimum_samples & vk::SampleCountFlags::TYPE_32 == vk::SampleCountFlags::TYPE_32 {
         return vk::SampleCountFlags::TYPE_32
-    } else if vk::SampleCountFlags::TYPE_16 {
+    } else if minimum_samples & vk::SampleCountFlags::TYPE_16 == vk::SampleCountFlags::TYPE_16 {
         return vk::SampleCountFlags::TYPE_16
-    } else if vk::SampleCountFlags::TYPE_8 {
+    } else if minimum_samples & vk::SampleCountFlags::TYPE_8 == vk::SampleCountFlags::TYPE_8 {
         return vk::SampleCountFlags::TYPE_8
-    } else if vk::SampleCountFlags::TYPE_4 {
+    } else if minimum_samples & vk::SampleCountFlags::TYPE_4 == vk::SampleCountFlags::TYPE_4 {
         return vk::SampleCountFlags::TYPE_4
-    } else if vk::SampleCountFlags::TYPE_2 {
+    } else if minimum_samples & vk::SampleCountFlags::TYPE_2 == vk::SampleCountFlags::TYPE_2 {
         return vk::SampleCountFlags::TYPE_2
     }
     vk::SampleCountFlags::TYPE_1
 }
-*/
 

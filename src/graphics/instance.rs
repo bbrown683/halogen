@@ -38,7 +38,7 @@ impl Drop for Instance {
             }
             self.instance.destroy_instance(None);
         }
-        info!("Dropped Instance.")
+        info!("Dropped Instance")
     }
 }
 
@@ -125,17 +125,17 @@ impl Instance {
     }
 
     /// Returns the ash entrypoint.
-    pub fn get_ash_entry(&self) -> &ash::Entry {
+    pub fn ash_entry(&self) -> &ash::Entry {
         &self.entry
     }
 
     /// Returns the ash instance.
-    pub fn get_ash_instance(&self) -> &ash::Instance {
+    pub fn ash_instance(&self) -> &ash::Instance {
         &self.instance
     }
 
     /// Returns all physical devices.
-    pub fn get_physical_devices(&self) -> Vec<vk::PhysicalDevice> {
+    pub fn physical_devices(&self) -> Vec<vk::PhysicalDevice> {
         self.physical_devices.clone()
     }
 

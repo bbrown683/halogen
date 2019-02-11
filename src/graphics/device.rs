@@ -34,17 +34,17 @@ impl Device {
         let physical_device = instance.select_primary_physical_device();
         let (properties, features, limits, memory_properties, queue_families) = unsafe {
             let properties = instance
-                .get_ash_instance()
+                .ash_instance()
                 .get_physical_device_properties(physical_device);
             let features = instance
-                .get_ash_instance()
+                .ash_instance()
                 .get_physical_device_features(physical_device);
             let limits = properties.limits;
             let memory_properties = instance
-                .get_ash_instance()
+                .ash_instance()
                 .get_physical_device_memory_properties(physical_device);
             let queue_families = instance
-                .get_ash_instance()
+                .ash_instance()
                 .get_physical_device_queue_family_properties(physical_device);
             (properties, features, limits, memory_properties, queue_families)
         };
@@ -93,7 +93,7 @@ impl Device {
 
         let device = unsafe {
             instance
-                .get_ash_instance()
+                .ash_instance()
                 .create_device(physical_device, &device_info, None)
                 .unwrap()
         };
@@ -110,35 +110,35 @@ impl Device {
         })
     }
 
-    pub fn get_ash_device(&self) -> &ash::Device {
+    pub fn ash_device(&self) -> &ash::Device {
         &self.device
     }
 
-    pub fn get_physical_device(&self) -> vk::PhysicalDevice {
+    pub fn physical_device(&self) -> vk::PhysicalDevice {
         self.physical_device
     }
 
-    pub fn get_compute_queue_index(&self) -> u32 {
+    pub fn compute_queue_index(&self) -> u32 {
         self.compute_index
     }
 
-    pub fn get_graphics_queue_index(&self) -> u32 {
+    pub fn graphics_queue_index(&self) -> u32 {
         self.graphics_index
     }
 
-    pub fn get_transfer_queue_index(&self) -> u32 {
+    pub fn transfer_queue_index(&self) -> u32 {
         self.transfer_index
     }
 
-    pub fn get_properties(&self) -> vk::PhysicalDeviceProperties {
+    pub fn properties(&self) -> vk::PhysicalDeviceProperties {
         self.properties
     }
 
-    pub fn get_limits(&self) -> vk::PhysicalDeviceLimits {
+    pub fn limits(&self) -> vk::PhysicalDeviceLimits {
         self.limits
     }
 
-    pub fn get_memory_properties(&self) -> vk::PhysicalDeviceMemoryProperties {
+    pub fn memory_properties(&self) -> vk::PhysicalDeviceMemoryProperties {
         self.memory_properties
     }
 }
