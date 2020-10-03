@@ -2,6 +2,7 @@ use std::{cell::RefCell, iter, rc::Rc};
 use ash::extensions::{khr::Surface as SurfaceLoader, khr::Swapchain as SwapchainLoader};
 use ash::version::DeviceV1_0;
 use ash::vk::{self, Result as VkResult};
+use winit::window::Window;
 use super::{Device, Instance, Queue, platform::create_surface, platform::get_required_instance_extensions, util::select_color_format};
 
 /// Provides a brief overview of why a swapchain failed to be created.
@@ -54,7 +55,7 @@ impl Swapchain {
     pub fn new(instance : Rc<RefCell<Instance>>,
                device : Rc<RefCell<Device>>,
                present_queue : Rc<RefCell<Queue>>,
-               window : &winit::Window,
+               window : &Window,
                image_count : u32) -> Result<Self,SwapchainCreationError> {
         // Initializes surface entry points and creates one.
         let surface_loader = SurfaceLoader::new(
@@ -72,7 +73,7 @@ impl Swapchain {
         };
 
         // Verifies that the device supports presentation.
-        if !supports_present {
+        if supports_present.is_err() {
             return Err(SwapchainCreationError::QueuePresentUnsupported);
         }
 
@@ -272,7 +273,7 @@ impl Swapchain {
                 .create_swapchain(&swapchain_info, None)
                 .expect("Failed to create swapchain");
             self.swapchain_loader.destroy_swapchain(self.swapchain, None);
-            (new_swapchain)
+            new_swapchain
         };
 
         self.images = unsafe {

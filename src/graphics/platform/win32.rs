@@ -2,11 +2,11 @@ use std::os::raw::c_void;
 use ash::extensions::{ext::DebugReport, khr::Surface, khr::Win32Surface};
 use ash::version::{EntryV1_0, InstanceV1_0};
 use ash::vk;
-use winit::os::windows::WindowExt;
+use winit::platform::windows::WindowExtWindows;
 
-pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, window : &winit::Window)
+pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, window : &winit::window::Window)
     -> vk::SurfaceKHR {
-    let hwnd = window.get_hwnd();
+    let hwnd = window.hwnd();
     let win32_create_info = vk::Win32SurfaceCreateInfoKHR::builder()
         .hwnd(hwnd as *const c_void)
         .build();

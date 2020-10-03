@@ -1,11 +1,11 @@
 use winit::dpi::{LogicalPosition, LogicalSize};
-use winit::{KeyboardInput, MouseButton};
+use winit::event::{KeyboardInput, MouseButton};
 
 pub trait CapturedEvent {
-    fn on_resize(&mut self, size : LogicalSize) {
+    fn on_resize(&mut self, size : LogicalSize<f32>) {
         println!("Window was resized to {:?}", &size);
     }
-    fn on_cursor_move(&mut self, position : LogicalPosition) {
+    fn on_cursor_move(&mut self, position : LogicalPosition<f32>) {
         println!("Cursor was moved to {:?}", &position);
     }
     fn on_keyboard_input(&mut self, input : KeyboardInput) {

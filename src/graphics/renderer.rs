@@ -1,6 +1,7 @@
 use std::{cell::RefCell, iter, rc::Rc};
 use std::sync::{Arc, Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
+use winit::window::Window;
 use super::{ColoredMaterial, CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
             PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
 use crate::util::CapturedEvent;
@@ -53,7 +54,7 @@ impl Drop for Renderer {
 
 impl CapturedEvent for Renderer {
     /// When this event is captured, the swapchain is recreated, and regenerates all framebuffers from the swapchain images.
-    fn on_resize(&mut self, _size : LogicalSize) {
+    fn on_resize(&mut self, _size : LogicalSize<f32>) {
         self.swapchain.as_mut().unwrap().recreate();
         self.framebuffers.as_mut().unwrap().clear();
         for image in self.swapchain.as_ref().unwrap().images() {
@@ -70,7 +71,7 @@ impl CapturedEvent for Renderer {
 
 impl Renderer {
     /// Initializes the renderer for the specified window.
-    pub fn new(window : &winit::Window) -> Self {
+    pub fn new(window : &Window) -> Self {
         info!("Initializing Renderer.");
         // TODO: Properly handle errors here and present them to the output.
 

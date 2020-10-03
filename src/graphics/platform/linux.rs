@@ -2,12 +2,12 @@ use std::os::raw::c_void;
 use ash::extensions::{ext::DebugReport, khr::Surface, khr::XlibSurface};
 use ash::version::{EntryV1_0, InstanceV1_0};
 use ash::vk;
-use winit::os::unix::WindowExt;
+use winit::platform::unix::WindowExtUnix;
 
 pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, window : &winit::Window)
     -> vk::SurfaceKHR {
-    let xlib_display = window.get_xlib_display().unwrap();
-    let xlib_window = window.get_xlib_window().unwrap();
+    let xlib_display = window.xlib_display().unwrap();
+    let xlib_window = window.xlib_window().unwrap();
     let xlib_create_info = vk::XlibSurfaceCreateInfoKHR::builder()
         .dpy(xlib_display as *mut vk::Display)
         .window(xlib_window as vk::Window)

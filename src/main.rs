@@ -1,4 +1,3 @@
-#![feature(range_contains)]
 extern crate alto;
 extern crate ash;
 extern crate lewton;
@@ -20,7 +19,9 @@ use log::{LevelFilter};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Logger, Root};
-use winit::WindowEvent;
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::{Window, WindowBuilder};
 use crate::util::CapturedEvent;
 
 fn main() {
@@ -32,9 +33,9 @@ fn main() {
 
     let handle = log4rs::init_config(config).unwrap();
 
-    let mut events_loop = winit::EventsLoop::new();
-    let window = winit::WindowBuilder::new()
-        .with_dimensions(winit::dpi::LogicalSize::new(1024 as _, 768 as _))
+    let mut events_loop = EventLoop::new();
+    let window = WindowBuilder::new()
+        .with_inner_size(winit::dpi::LogicalSize::new(1024, 768))
         .with_title("Halogen".to_string())
         .with_resizable(true)
         .build(&events_loop)
@@ -42,17 +43,14 @@ fn main() {
 
     let mut renderer = graphics::Renderer::new(&window);
 
-    let mut running = true;
-    while running {
-        events_loop.poll_events(|event| {
-            if let winit::Event::WindowEvent { event, .. } = event {
-                match event {
-                    WindowEvent::CloseRequested => running = false,
-                    _ => (),
-                }
+    events_loop.run(move |event, _, control_flow| {
+        if let Event::WindowEvent { event, .. } = event {
+            match event {
+                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                _ => (),
             }
-        });
+        }
         &renderer.begin_frame();
         &renderer.end_frame();
-    }
+    });
 }
