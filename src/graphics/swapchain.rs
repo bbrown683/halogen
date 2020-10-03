@@ -73,7 +73,7 @@ impl Swapchain {
         };
 
         // Verifies that the device supports presentation.
-        if supports_present.is_err() {
+        if !supports_present.unwrap() {
             return Err(SwapchainCreationError::QueuePresentUnsupported);
         }
 

@@ -50,7 +50,6 @@ fn main() {
                 _ => (),
             }
         }
-        &renderer.begin_frame();
-        &renderer.end_frame();
+        &renderer.draw_frame();
     });
 }

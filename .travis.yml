@@ -3,5 +3,5 @@ os:
   - windows
   - linux
 rust:
-  - nightly
+  - stable
 cache: cargo
