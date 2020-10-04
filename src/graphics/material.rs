@@ -21,25 +21,15 @@ fn create_shader_module(device : &Rc<RefCell<Device>>, bytes : Vec<u8>) -> vk::S
     }
 }
 
-pub struct ColoredVertex {
+/// Stores the vertex information associated.
+pub struct Vertex {
     position : Vector3<f32>,
     color : Vector4<f32>,
-}
-
-pub struct TexturedVertex {
-    position : Vector3<f32>,
     texture_coord : Vector2<f32>,
 }
 
 /// A material describes the appearance of an object in a rendered space.
-pub trait Material {
-    fn vertex_buffer_size(&self) -> vk::DeviceSize;
-    fn pipeline_shader_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo>;
-    fn pipeline_vertex_input_state(&self) ->  vk::PipelineVertexInputStateCreateInfo;
-}
-
-/// Represents a material with only color.
-pub struct ColoredMaterial {
+pub struct Material {
     device : Rc<RefCell<Device>>,
     entry_point : CString,
     vertex_module : vk::ShaderModule,
@@ -48,23 +38,17 @@ pub struct ColoredMaterial {
     pipeline_vertex_input_state : vk::PipelineVertexInputStateCreateInfo,
 }
 
-impl Drop for ColoredMaterial {
+impl Drop for Material {
     fn drop(&mut self) {
         unsafe {
             self.device.borrow().ash_device().destroy_shader_module(self.vertex_module, None);
             self.device.borrow().ash_device().destroy_shader_module(self.fragment_module, None);
         }
-        info!("Dropped ColoredMaterial")
+        info!("Dropped Material")
     }
 }
 
-impl Material for ColoredMaterial {
-    fn vertex_buffer_size(&self) -> vk::DeviceSize { size_of::<ColoredVertex>() as vk::DeviceSize }
-    fn pipeline_shader_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo> { self.pipeline_shader_stages.clone() }
-    fn pipeline_vertex_input_state(&self) -> vk::PipelineVertexInputStateCreateInfo { self.pipeline_vertex_input_state }
-}
-
-impl ColoredMaterial {
+impl Material {
     pub fn new(device : Rc<RefCell<Device>>) -> Self {
         // Have to keep this pointer alive.
         let entry_point = CString::new("main").unwrap();
@@ -86,19 +70,10 @@ impl ColoredMaterial {
             .build();
         Self { device, entry_point, vertex_module, fragment_module, pipeline_shader_stages, pipeline_vertex_input_state }
     }
-}
 
-/// Represents a material with only a texture.
-pub struct TexturedMaterial;
+    pub fn vertex_buffer_size(&self) -> vk::DeviceSize { size_of::<Vertex>() as vk::DeviceSize }
 
-impl Material for TexturedMaterial {
-    fn vertex_buffer_size(&self) -> vk::DeviceSize { size_of::<TexturedVertex>() as vk::DeviceSize }
-    fn pipeline_shader_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo> {
-        unimplemented!()
-    }
-    fn pipeline_vertex_input_state(&self) -> vk::PipelineVertexInputStateCreateInfo { unimplemented!() }
-}
+    pub fn pipeline_shader_stages(&self) -> Vec<vk::PipelineShaderStageCreateInfo> { self.pipeline_shader_stages.clone() }
 
-impl TexturedMaterial {
-    pub fn new() -> Self { Self {} }
+    pub fn pipeline_vertex_input_state(&self) -> vk::PipelineVertexInputStateCreateInfo { self.pipeline_vertex_input_state }
 }

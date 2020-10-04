@@ -8,24 +8,28 @@ pub enum BufferCreationError {
     UnsupportedMemoryType,
 }
 
-pub struct VertexBuffer {
+pub struct Buffer {
     device : Rc<RefCell<Device>>,
     buffer : vk::Buffer,
     buffer_memory : vk::DeviceMemory,
 }
 
-impl Drop for VertexBuffer {
+impl Drop for Buffer {
     fn drop(&mut self) {
         unsafe {
             self.device.borrow().ash_device().destroy_buffer(self.buffer, None);
             self.device.borrow().ash_device().free_memory(self.buffer_memory, None);
         }
-        info!("Dropped VertexBuffer")
+        info!("Dropped Buffer")
     }
 }
 
+pub struct VertexBuffer {
+    buffer : Buffer,
+}
+
 impl VertexBuffer {
-    pub fn new<M: Material>(device : Rc<RefCell<Device>>, material : &M) -> Result<Self,BufferCreationError> {
+    pub fn new(device : Rc<RefCell<Device>>, material : &Material) -> Result<Self,BufferCreationError> {
         let buffer_info = vk::BufferCreateInfo::builder()
             .size(material.vertex_buffer_size())
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
@@ -75,12 +79,18 @@ impl VertexBuffer {
                 };
 
                 Ok(Self {
-                    device,
-                    buffer,
-                    buffer_memory
+                    buffer : Buffer { device, buffer, buffer_memory }
                 })
             },
             None => Err(BufferCreationError::UnsupportedMemoryType),
         }
     }
+}
+
+pub struct IndexBuffer {
+    buffer : Buffer,
+}
+
+pub struct StagingBuffer {
+    buffer : Buffer,
 }

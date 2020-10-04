@@ -2,7 +2,7 @@ use std::{cell::RefCell, iter, rc::Rc};
 use std::sync::{Arc, Mutex};
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::window::Window;
-use super::{ColoredMaterial, CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
+use super::{Material, CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
             PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
 use crate::util::CapturedEvent;
 
@@ -19,13 +19,13 @@ pub struct Renderer {
     framebuffers : Option<Vec<Framebuffer>>,
     graphics_pool : Option<Rc<RefCell<CmdPool>>>,
     graphics_buffer : Option<CmdBuffer>,
-    colored_material : Option<ColoredMaterial>,
+    material : Option<Material>,
 }
 
 impl Drop for Renderer {
     fn drop(&mut self) {
-        self.colored_material.take();
-        debug_assert!(self.colored_material.is_none());
+        self.material.take();
+        debug_assert!(self.material.is_none());
         self.graphics_buffer.take();
         debug_assert!(self.graphics_buffer.is_none());
         self.graphics_pool.take();
@@ -108,10 +108,10 @@ impl Renderer {
             .add_color_attachment(swapchain.surface_format().format)
             .build()));
 
-        let colored_material = ColoredMaterial::new(Rc::clone(&device));
+        let material = Material::new(Rc::clone(&device));
 
         let colored_graphics_pipeline = PipelineBuilder::new(Rc::clone(&device))
-            .build_graphics(&render_pass.borrow(), &colored_material, swapchain.capabilities().current_extent);
+            .build_graphics(&render_pass.borrow(), &material, swapchain.capabilities().current_extent);
 
         // Grab the swapchain images to create the framebuffers.
         let mut framebuffers = Vec::<Framebuffer>::new();
@@ -146,7 +146,7 @@ impl Renderer {
             framebuffers: Some(framebuffers),
             graphics_pool: Some(graphics_pool),
             graphics_buffer: Some(graphics_buffer),
-            colored_material: Some(colored_material)
+            material: Some(material)
         }
     }
 

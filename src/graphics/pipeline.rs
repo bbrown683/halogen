@@ -48,7 +48,7 @@ impl PipelineBuilder {
     }
 
     /// Builds a graphics pipeline.
-    pub fn build_graphics<M: Material>(self, render_pass : &RenderPass, material : &M, extent : vk::Extent2D) -> Pipeline {
+    pub fn build_graphics(self, render_pass : &RenderPass, material : &Material, extent : vk::Extent2D) -> Pipeline {
         let color_blend_attachments = vec![
             vk::PipelineColorBlendAttachmentState::builder()
                 .color_write_mask(vk::ColorComponentFlags::R | vk::ColorComponentFlags::G |
