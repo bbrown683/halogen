@@ -19,6 +19,7 @@ use log::{LevelFilter};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Logger, Root};
+use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
@@ -33,9 +34,9 @@ fn main() {
 
     let handle = log4rs::init_config(config).unwrap();
 
-    let mut events_loop = EventLoop::new();
+    let events_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_inner_size(winit::dpi::LogicalSize::new(1024, 768))
+        .with_inner_size(LogicalSize::new(1024, 768))
         .with_title("Halogen".to_string())
         .with_resizable(true)
         .build(&events_loop)

@@ -281,6 +281,7 @@ impl Swapchain {
                 .get_swapchain_images(self.swapchain)
                 .unwrap()
         };
+        info!("Recreated Swapchain")
     }
 
     /// Returns the images associated with this Swapchain, used in the creation of a Framebuffer.

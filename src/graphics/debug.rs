@@ -14,10 +14,11 @@ pub unsafe extern "system" fn debug_callback(
 ) -> u32 {
     match flags {
         vk::DebugReportFlagsEXT::ERROR => error!("{:?}", CStr::from_ptr(p_message)),
-        vk::DebugReportFlagsEXT::WARNING | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING => warn!("{:?}", CStr::from_ptr(p_message)),
+        vk::DebugReportFlagsEXT::WARNING => warn!("{:?}", CStr::from_ptr(p_message)),
+        vk::DebugReportFlagsEXT::PERFORMANCE_WARNING => warn!("{:?}", CStr::from_ptr(p_message)),
         vk::DebugReportFlagsEXT::DEBUG => debug!("{:?}", CStr::from_ptr(p_message)),
         vk::DebugReportFlagsEXT::INFORMATION => info!("{:?}", CStr::from_ptr(p_message)),
-        _ => trace!("{:?}", CStr::from_ptr(p_message)),
+        _ => (),
     }
     vk::FALSE
 }
