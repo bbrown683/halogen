@@ -8,15 +8,13 @@ extern crate winit;
 pub mod graphics;
 pub mod util;
 
-use std::error::Error;
-use log::{LevelFilter};
+use log::LevelFilter;
 use log4rs::append::console::ConsoleAppender;
-use log4rs::encode::pattern::PatternEncoder;
-use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::config::{Appender, Config, Root};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowBuilder};
+use winit::window::WindowBuilder;
 use crate::util::CapturedEvent;
 
 fn main() {

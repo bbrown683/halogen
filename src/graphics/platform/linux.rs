@@ -1,5 +1,5 @@
 use std::os::raw::c_void;
-use ash::extensions::{ext::DebugReport, khr::Surface, khr::XlibSurface};
+use ash::extensions::{ext::DebugUtils, khr::Surface, khr::XlibSurface};
 use ash::vk;
 use ash::{Entry, Instance};
 use winit::platform::unix::WindowExtUnix;
@@ -22,5 +22,5 @@ pub fn create_surface(entry : &Entry, instance : &Instance, window : &Window)
 }
 
 pub fn get_required_instance_extensions() -> Vec<*const i8> {
-    vec![Surface::name().as_ptr(), XlibSurface::name().as_ptr(), DebugReport::name().as_ptr()] as Vec<*const i8>
+    vec![Surface::name().as_ptr(), XlibSurface::name().as_ptr(), DebugUtils::name().as_ptr()] as Vec<*const i8>
 }

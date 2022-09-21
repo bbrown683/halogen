@@ -1,9 +1,9 @@
 use std::ffi::CString;
 use ash::vk::{self, Result as VkResult};
-use ash::extensions::{ext::DebugReport, khr::Surface};
+use ash::extensions::ext::DebugUtils;
 
-use super::platform::{create_surface, get_required_instance_extensions};
-use super::debug::debug_callback;
+use super::platform::get_required_instance_extensions;
+use super::debug::debug_utils_callback;
 
 /// Provides a brief overview of why an instance failed to be created.
 pub enum InstanceCreationError {
@@ -21,8 +21,8 @@ pub enum InstanceCreationError {
 pub struct Instance {
     entry : ash::Entry,
     instance : ash::Instance,
-    debug_report_loader : Option<DebugReport>,
-    debug_report : Option<vk::DebugReportCallbackEXT>,
+    debug_utils_loader : Option<DebugUtils>,
+    debug_utils : Option<vk::DebugUtilsMessengerEXT>,
     physical_devices : Vec<vk::PhysicalDevice>,
 }
 
@@ -30,9 +30,9 @@ impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
             // Check if debug report extension was toggled.
-            if self.debug_report_loader.is_some() {
-                self.debug_report_loader.take().unwrap().destroy_debug_report_callback(
-                    self.debug_report.take().unwrap(), None);
+            if self.debug_utils_loader.is_some() {
+                self.debug_utils_loader.take().unwrap().destroy_debug_utils_messenger(
+                    self.debug_utils.take().unwrap(), None);
             }
             self.instance.destroy_instance(None);
         }
@@ -83,25 +83,26 @@ impl Instance {
             }
         };
 
-        // Only enable the report callback on debug builds.
-        let (debug_report_loader, debug_report) = if cfg!(debug_assertions) {
-            let debug_info = vk::DebugReportCallbackCreateInfoEXT::builder()
-                .flags(vk::DebugReportFlagsEXT::ERROR
-                    | vk::DebugReportFlagsEXT::WARNING
-                    | vk::DebugReportFlagsEXT::PERFORMANCE_WARNING
-                    | vk::DebugReportFlagsEXT::DEBUG
-                    | vk::DebugReportFlagsEXT::INFORMATION)
-                .pfn_callback(Some(debug_callback));
+        // Only enable the debug utils callback on debug builds.
+        let (debug_utils_loader, debug_utils) = if cfg!(debug_assertions) {
+            let debug_utils_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
+                .message_severity(vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
+                    | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+                    | vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+                    | vk::DebugUtilsMessageSeverityFlagsEXT::INFO)
+                .message_type(vk::DebugUtilsMessageTypeFlagsEXT::GENERAL 
+                    | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE 
+                    | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION)
+                .pfn_user_callback(Some(debug_utils_callback));
 
-            let debug_report_loader = DebugReport::new(&entry, &instance);
-            let debug_report = unsafe {
-                debug_report_loader.create_debug_report_callback(
-                    &debug_info,
-                    None)
+                let debug_utils_loader = DebugUtils::new(&entry, &instance);
+                let debug_utils = unsafe {
+                    debug_utils_loader
+                    .create_debug_utils_messenger(&debug_utils_info, None)
                     .unwrap()
-            };
+                };
 
-            (Some(debug_report_loader), Some(debug_report))
+                (Some(debug_utils_loader), Some(debug_utils))
         } else {
             (None, None)
         };
@@ -114,8 +115,8 @@ impl Instance {
 
         Ok(Self { entry,
             instance,
-            debug_report_loader,
-            debug_report,
+            debug_utils_loader,
+            debug_utils,
             physical_devices
         })
     }
