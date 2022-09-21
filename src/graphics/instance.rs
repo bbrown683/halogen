@@ -1,8 +1,6 @@
 use std::ffi::CString;
 use ash::vk::{self, Result as VkResult};
 use ash::extensions::{ext::DebugReport, khr::Surface};
-use ash::version::{EntryV1_0, InstanceV1_0};
-use ash::InstanceError;
 
 use super::platform::{create_surface, get_required_instance_extensions};
 use super::debug::debug_callback;
@@ -44,9 +42,15 @@ impl Drop for Instance {
 
 impl Instance {
     pub fn new() -> Result<Self,InstanceCreationError> {
-        let entry = ash::Entry::new().unwrap();
+        let entry = unsafe { 
+            let entry_result = ash::Entry::load();
+            match entry_result {
+                Ok(entry) => (entry),
+                Err(_error) => return Err(InstanceCreationError::MissingDriver)
+            } 
+        };
 
-        let layer_names = [CString::new("VK_LAYER_LUNARG_standard_validation").unwrap()];
+        let layer_names = [CString::new("VK_LAYER_KHRONOS_validation").unwrap()];
         let layer_names_raw: Vec<*const i8> = layer_names
             .iter()
             .map(|raw_name| raw_name.as_ptr())
@@ -70,16 +74,11 @@ impl Instance {
             let instance_result = entry.create_instance(&instance_info, None);
             match instance_result {
                 Ok(instance) => (instance),
-                Err(error) => {
-                    match error {
-                        InstanceError::VkError(error) => match error {
-                            VkResult::ERROR_INCOMPATIBLE_DRIVER => return Err(InstanceCreationError::MissingDriver),
-                            VkResult::ERROR_EXTENSION_NOT_PRESENT => return Err(InstanceCreationError::MissingExtensions),
-                            VkResult::ERROR_LAYER_NOT_PRESENT => return Err(InstanceCreationError::MissingLayers),
-                            _ => return Err(InstanceCreationError::Unknown),
-                        },
-                        _ => return Err(InstanceCreationError::Unknown),
-                    }
+                Err(error) => match error {
+                    VkResult::ERROR_INCOMPATIBLE_DRIVER => return Err(InstanceCreationError::MissingDriver),
+                    VkResult::ERROR_EXTENSION_NOT_PRESENT => return Err(InstanceCreationError::MissingExtensions),
+                    VkResult::ERROR_LAYER_NOT_PRESENT => return Err(InstanceCreationError::MissingLayers),
+                    _ => return Err(InstanceCreationError::Unknown),
                 }
             }
         };

@@ -1,5 +1,4 @@
 use std::{cell::RefCell, mem::size_of, rc::Rc};
-use ash::version::DeviceV1_0;
 use ash::vk;
 use super::{Device, Material, util::find_memory_type_index};
 

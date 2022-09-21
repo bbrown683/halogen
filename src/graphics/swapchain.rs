@@ -1,6 +1,5 @@
 use std::{cell::RefCell, iter, rc::Rc};
 use ash::extensions::{khr::Surface as SurfaceLoader, khr::Swapchain as SwapchainLoader};
-use ash::version::DeviceV1_0;
 use ash::vk::{self, Result as VkResult};
 use winit::window::Window;
 use super::{Device, Instance, Queue, platform::create_surface, platform::get_required_instance_extensions, util::select_color_format};

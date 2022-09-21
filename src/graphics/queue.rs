@@ -1,5 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
-use ash::{vk, version::DeviceV1_0};
+use ash::vk;
 use super::{CmdBuffer, Device};
 
 pub struct Queue {

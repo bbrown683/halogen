@@ -1,6 +1,6 @@
 use std::{cell::RefCell, iter, rc::Rc};
 use std::sync::{Arc, Mutex};
-use winit::dpi::{LogicalPosition, LogicalSize};
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::window::Window;
 use super::{Material, CmdBuffer, CmdPool, CmdState, Device, Framebuffer, FramebufferBuilder, Instance, Pipeline,
             PipelineBuilder, RenderPass, RenderPassBuilder, Swapchain, Queue};
@@ -54,7 +54,8 @@ impl Drop for Renderer {
 
 impl CapturedEvent for Renderer {
     /// When this event is captured, the swapchain is recreated, and regenerates all framebuffers from the swapchain images.
-    fn on_resize(&mut self, _size : LogicalSize<f32>) {
+    fn on_resize(&mut self, _size : PhysicalSize<u32>) {
+        debug!("Resizing Swapchain");
         self.swapchain.as_mut().unwrap().recreate();
         self.framebuffers.as_mut().unwrap().clear();
         for image in self.swapchain.as_ref().unwrap().images() {

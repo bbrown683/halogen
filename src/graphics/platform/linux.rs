@@ -1,11 +1,11 @@
 use std::os::raw::c_void;
 use ash::extensions::{ext::DebugReport, khr::Surface, khr::XlibSurface};
-use ash::version::{EntryV1_0, InstanceV1_0};
 use ash::vk;
+use ash::{Entry, Instance};
 use winit::platform::unix::WindowExtUnix;
 use winit::window::Window;
 
-pub fn create_surface<E: EntryV1_0, I: InstanceV1_0>(entry : &E, instance : &I, window : &Window)
+pub fn create_surface(entry : &Entry, instance : &Instance, window : &Window)
     -> vk::SurfaceKHR {
     let xlib_display = window.xlib_display().unwrap();
     let xlib_window = window.xlib_window().unwrap();

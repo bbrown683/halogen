@@ -1,15 +1,9 @@
-extern crate alto;
 extern crate ash;
-extern crate lewton;
 #[macro_use] extern crate log;
 extern crate log4rs;
 extern crate nalgebra;
-extern crate num_cpus;
-extern crate rayon;
 extern crate winit;
 
-///
-pub mod audio;
 /// High-level wrapper for [ash](https://github.com/MaikKlein/ash) around typical types.
 pub mod graphics;
 pub mod util;
@@ -29,7 +23,7 @@ fn main() {
     let stdout = ConsoleAppender::builder().build();
     let config = Config::builder()
         .appender(Appender::builder().build("stdout_appender", Box::new(stdout)))
-        .build(Root::builder().appender("stdout_appender").build(LevelFilter::Debug))
+        .build(Root::builder().appender("stdout_appender").build(LevelFilter::Info))
         .unwrap();
 
     let handle = log4rs::init_config(config).unwrap();
@@ -48,9 +42,10 @@ fn main() {
         if let Event::WindowEvent { event, .. } = event {
             match event {
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                WindowEvent::Resized(size) => renderer.on_resize(size),
                 _ => (),
             }
         }
-        &renderer.draw_frame();
+        renderer.draw_frame();
     });
 }

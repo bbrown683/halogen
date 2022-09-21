@@ -1,4 +1,3 @@
-use ash::version::InstanceV1_0;
 use ash::vk;
 
 /// Attempts to select the preferred format provided. If it cannot, it will select the first format it can find.

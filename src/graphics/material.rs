@@ -1,5 +1,4 @@
 use std::{cell::RefCell, ffi::CString, fs::File, io::Read, mem::size_of, rc::Rc};
-use ash::version::DeviceV1_0;
 use ash::vk;
 use nalgebra::{Vector2, Vector3, Vector4};
 use super::Device;
